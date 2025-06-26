@@ -85,6 +85,7 @@ class _LoginScreenState extends State<LoginScreen>
                           107,
                           110,
                           110,
+                          // ignore: deprecated_member_use
                         ).withOpacity(_fadeAnimation.value),
                         // ignore: deprecated_member_use
                         const Color.fromARGB(
@@ -92,6 +93,7 @@ class _LoginScreenState extends State<LoginScreen>
                           141,
                           147,
                           158,
+                          // ignore: deprecated_member_use
                         ).withOpacity(_fadeAnimation.value * 0.9),
                       ],
                     ),

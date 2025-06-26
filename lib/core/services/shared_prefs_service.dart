@@ -11,7 +11,7 @@ class SharedPrefsService {
     await _prefs.setString('auth_token', token);
   }
 
-  static String? getToken() {
+  static Future<String?> getToken() async {
     return _prefs.getString('auth_token');
   }
 

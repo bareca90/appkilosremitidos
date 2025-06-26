@@ -1,4 +1,5 @@
 import 'package:appkilosremitidos/core/constants/app_colors.dart';
+import 'package:appkilosremitidos/core/constants/app_routes.dart';
 import 'package:appkilosremitidos/core/constants/app_strings.dart';
 import 'package:appkilosremitidos/core/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
@@ -81,6 +82,11 @@ class HomeScreen extends StatelessWidget {
                     color: AppColors.primaryBlue,
                     onTap: () {
                       // Navegar a pantalla de registro de kilos
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.fishingDataList,
+                        arguments: {'option': 'GSK', 'isKilosScreen': true},
+                      );
                     },
                   ),
                   const SizedBox(height: 20),
@@ -90,6 +96,11 @@ class HomeScreen extends StatelessWidget {
                     color: AppColors.primaryRed,
                     onTap: () {
                       // Navegar a pantalla de registro de horas
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.fishingDataList,
+                        arguments: {'option': 'GSG', 'isKilosScreen': false},
+                      );
                     },
                   ),
 

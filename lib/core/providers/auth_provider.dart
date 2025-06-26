@@ -6,9 +6,11 @@ class AuthProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
   bool _isLoading = false;
   String? _errorMessage;
+  String? _token;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String? get token => _token;
 
   Future<bool> login(String username, String password) async {
     _isLoading = true;
@@ -18,7 +20,8 @@ class AuthProvider with ChangeNotifier {
       final response = await _apiService.validateUser(username, password);
 
       if (response.code == 200) {
-        await SharedPrefsService.saveToken(response.data['token']);
+        _token = response.data['token'];
+        await SharedPrefsService.saveToken(_token!);
         _errorMessage = null;
         _isLoading = false;
         notifyListeners();
@@ -38,7 +41,14 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    _token = null;
     await SharedPrefsService.clearToken();
+    notifyListeners();
+  }
+
+  // Método para cargar el token al iniciar la app
+  Future<void> loadToken() async {
+    _token = await SharedPrefsService.getToken();
     notifyListeners();
   }
 
