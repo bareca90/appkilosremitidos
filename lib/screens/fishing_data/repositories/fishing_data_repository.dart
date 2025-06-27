@@ -42,6 +42,7 @@ class FishingDataRepository {
       final dataFromDb = await _localDbService.getAllKilos();
       return dataFromDb;
     } catch (e) {
+      // ignore: avoid_print
       print('Error fetching remote data: $e');
       final localData = await _localDbService.getAllKilos();
       if (localData.isEmpty) throw Exception('No hay datos disponibles');
@@ -61,7 +62,16 @@ class FishingDataRepository {
     await _localDbService.updateKilos(nroGuia, kilos);
   }
 
-  Future<void> updateHours(String nroGuia, Map<String, String> hours) async {
-    await _localDbService.updateHours(nroGuia, hours);
+  Future<void> updateHours(String nroGuia, Map<String, dynamic> hours) async {
+    await _localDbService.updateHours(nroGuia, {
+      'inicioPesca': hours['inicioPesca'],
+      'finPesca': hours['finPesca'],
+      'fechaCamaroneraPlanta': hours['fechaCamaroneraPlanta'],
+      'fechaLlegadaCamaronera': hours['fechaLlegadaCamaronera'],
+      /* 'tieneInicioPesca': hours['tieneInicioPesca'],
+      'tieneFinPesca': hours['tieneFinPesca'],
+      'tieneSalidaCamaronera': hours['tieneSalidaCamaronera'],
+      'tieneLlegadaCamaronera': hours['tieneLlegadaCamaronera'], */
+    });
   }
 }

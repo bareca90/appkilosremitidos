@@ -3,9 +3,9 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class LocalDbService {
-  static const String _dbName = 'fishing_datas.db';
+  static const String _dbName = 'fishing_datos.db';
   static const String _tableName = 'fishing_data';
-  static const int _dbVersion = 1;
+  static const int _dbVersion = 3;
 
   Database? _database;
 
@@ -33,9 +33,33 @@ class LocalDbService {
             finPesca TEXT,
             fechaCamaroneraPlanta TEXT,
             fechaLlegadaCamaronera TEXT,
-            totalKilosRemitidos INTEGER
+            totalKilosRemitidos INTEGER,
+            tieneInicioPesca INTEGER DEFAULT 0,
+            tieneFinPesca INTEGER DEFAULT 0,
+            tieneSalidaCamaronera INTEGER DEFAULT 0,
+            tieneLlegadaCamaronera INTEGER DEFAULT 0,
+            tieneKilosRemitidos INTEGER DEFAULT 0
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            ALTER TABLE $_tableName ADD COLUMN tieneInicioPesca INTEGER DEFAULT 0
+          ''');
+          await db.execute('''
+            ALTER TABLE $_tableName ADD COLUMN tieneFinPesca INTEGER DEFAULT 0
+          ''');
+          await db.execute('''
+            ALTER TABLE $_tableName ADD COLUMN tieneSalidaCamaronera INTEGER DEFAULT 0
+          ''');
+          await db.execute('''
+            ALTER TABLE $_tableName ADD COLUMN tieneLlegadaCamaronera INTEGER DEFAULT 0
+          ''');
+          await db.execute('''
+            ALTER TABLE $_tableName ADD COLUMN tieneKilosRemitidos INTEGER DEFAULT 0
+          ''');
+        }
       },
     );
   }

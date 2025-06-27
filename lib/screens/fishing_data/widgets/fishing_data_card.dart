@@ -85,6 +85,7 @@ class FishingDataCard extends StatelessWidget {
         ),
         Chip(
           label: Text(data.tipoPesca),
+          // ignore: deprecated_member_use
           backgroundColor: theme.primaryColor.withOpacity(0.1),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),

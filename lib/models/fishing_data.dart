@@ -10,6 +10,11 @@ class FishingData {
   final String? fechaCamaroneraPlanta;
   final String? fechaLlegadaCamaronera;
   final int? totalKilosRemitidos;
+  final int tieneInicioPesca;
+  final int tieneFinPesca;
+  final int tieneSalidaCamaronera;
+  final int tieneLlegadaCamaronera;
+  final int tieneKilosRemitidos;
 
   FishingData({
     required this.tipoPesca,
@@ -23,6 +28,11 @@ class FishingData {
     this.fechaCamaroneraPlanta,
     this.fechaLlegadaCamaronera,
     this.totalKilosRemitidos,
+    this.tieneInicioPesca = 0,
+    this.tieneFinPesca = 0,
+    this.tieneSalidaCamaronera = 0,
+    this.tieneLlegadaCamaronera = 0,
+    this.tieneKilosRemitidos = 0,
   });
 
   factory FishingData.fromJson(Map<String, dynamic> json) {
@@ -46,6 +56,11 @@ class FishingData {
           ? null
           : json['fechaLlegadaCamaronera'],
       totalKilosRemitidos: json['TotalKilosRemitidos'],
+      tieneInicioPesca: json['tieneInicioPesca'] ?? 0,
+      tieneFinPesca: json['tieneFinPesca'] ?? 0,
+      tieneSalidaCamaronera: json['tieneSalidaCamaronera'] ?? 0,
+      tieneLlegadaCamaronera: json['tieneLlegadaCamaronera'] ?? 0,
+      tieneKilosRemitidos: json['tieneKilosRemitidos'] ?? 0,
     );
   }
 
@@ -62,6 +77,53 @@ class FishingData {
       'fechaCamaroneraPlanta': fechaCamaroneraPlanta,
       'fechaLlegadaCamaronera': fechaLlegadaCamaronera,
       'totalKilosRemitidos': totalKilosRemitidos,
+      'tieneInicioPesca': tieneInicioPesca,
+      'tieneFinPesca': tieneFinPesca,
+      'tieneSalidaCamaronera': tieneSalidaCamaronera,
+      'tieneLlegadaCamaronera': tieneLlegadaCamaronera,
+      'tieneKilosRemitidos': tieneKilosRemitidos,
     };
+  }
+
+  FishingData copyWith({
+    String? tipoPesca,
+    String? nroPesca,
+    String? nroGuia,
+    DateTime? fechaGuia,
+    String? camaronera,
+    String? piscina,
+    String? inicioPesca,
+    String? finPesca,
+    String? fechaCamaroneraPlanta,
+    String? fechaLlegadaCamaronera,
+    int? totalKilosRemitidos,
+    int? tieneInicioPesca,
+    int? tieneFinPesca,
+    int? tieneSalidaCamaronera,
+    int? tieneLlegadaCamaronera,
+    int? tieneKilosRemitidos,
+  }) {
+    return FishingData(
+      tipoPesca: tipoPesca ?? this.tipoPesca,
+      nroPesca: nroPesca ?? this.nroPesca,
+      nroGuia: nroGuia ?? this.nroGuia,
+      fechaGuia: fechaGuia ?? this.fechaGuia,
+      camaronera: camaronera ?? this.camaronera,
+      piscina: piscina ?? this.piscina,
+      inicioPesca: inicioPesca ?? this.inicioPesca,
+      finPesca: finPesca ?? this.finPesca,
+      fechaCamaroneraPlanta:
+          fechaCamaroneraPlanta ?? this.fechaCamaroneraPlanta,
+      fechaLlegadaCamaronera:
+          fechaLlegadaCamaronera ?? this.fechaLlegadaCamaronera,
+      totalKilosRemitidos: totalKilosRemitidos ?? this.totalKilosRemitidos,
+      tieneInicioPesca: tieneInicioPesca ?? this.tieneInicioPesca,
+      tieneFinPesca: tieneFinPesca ?? this.tieneFinPesca,
+      tieneSalidaCamaronera:
+          tieneSalidaCamaronera ?? this.tieneSalidaCamaronera,
+      tieneLlegadaCamaronera:
+          tieneLlegadaCamaronera ?? this.tieneLlegadaCamaronera,
+      tieneKilosRemitidos: tieneKilosRemitidos ?? this.tieneKilosRemitidos,
+    );
   }
 }

@@ -25,10 +25,10 @@ class FishingDataProvider with ChangeNotifier {
     }
     try {
       final newData = await _repository.fetchFishingData(token, option);
-      for (final data in newData) {
+      /* for (final data in newData) {
         // Verifica si el nroGuia ya existe en la lista
         print('Verificando Data : $data');
-      }
+      } */
       _dataList = newData;
       _errorMessage = null;
     } catch (e) {
@@ -56,9 +56,42 @@ class FishingDataProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveHours(String nroGuia, Map<String, String> hours) async {
-    await _repository.updateHours(nroGuia, hours);
-    notifyListeners();
+  Future<void> saveHours(String nroGuia, Map<String, dynamic> hours) async {
+    try {
+      // Guardar localmente primero
+      await _repository.updateHours(nroGuia, {
+        'inicioPesca': hours['inicioPesca'],
+        'finPesca': hours['finPesca'],
+        'fechaCamaroneraPlanta': hours['fechaCamaroneraPlanta'],
+        'fechaLlegadaCamaronera': hours['fechaLlegadaCamaronera'],
+        /* 'tieneInicioPesca': hours['tieneInicioPesca'],
+        'tieneFinPesca': hours['tieneFinPesca'],
+        'tieneSalidaCamaronera': hours['tieneSalidaCamaronera'],
+        'tieneLlegadaCamaronera': hours['tieneLlegadaCamaronera'], */
+      });
+      // TODO AQUI AGREGAR LA LOGICA PARA ENVIAR AL ENDPOINT
+      // Aquí puedes agregar la lógica para enviar al endpoint si es necesario
+      // await _apiService.updateHours(hours);
+
+      // Actualizar la lista local
+      final index = _dataList.indexWhere((data) => data.nroGuia == nroGuia);
+      if (index != -1) {
+        _dataList[index] = _dataList[index].copyWith(
+          inicioPesca: hours['inicioPesca'],
+          finPesca: hours['finPesca'],
+          fechaCamaroneraPlanta: hours['fechaCamaroneraPlanta'],
+          fechaLlegadaCamaronera: hours['fechaLlegadaCamaronera'],
+          tieneInicioPesca: hours['tieneInicioPesca'],
+          tieneFinPesca: hours['tieneFinPesca'],
+          tieneSalidaCamaronera: hours['tieneSalidaCamaronera'],
+          tieneLlegadaCamaronera: hours['tieneLlegadaCamaronera'],
+        );
+      }
+
+      notifyListeners();
+    } catch (e) {
+      throw Exception('Error al guardar horas: $e');
+    }
   }
 
   void clearError() {
