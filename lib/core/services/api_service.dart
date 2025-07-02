@@ -77,4 +77,37 @@ class ApiService {
       throw Exception('Error ${response.statusCode}: ${response.reasonPhrase}');
     }
   }
+
+  Future<Map<String, dynamic>> updateDateTimeWaybill({
+    required String token,
+    required String nroGuia,
+    required String? inicioPesca,
+    required String? finPesca,
+    required String? fechaCamaroneraPlanta,
+    required String? fechaLlegadaCamaronera,
+  }) async {
+    final response = await _client.post(
+      Uri.parse(ApiConstants.buildUrl(ApiConstants.updatedatetimewaybill)),
+      headers: {
+        'Content-Type': ApiConstants.contentType,
+        ApiConstants.authorizationHeader: 'Bearer $token',
+      },
+      body: jsonEncode({
+        'nroGuia': nroGuia,
+        if (inicioPesca != null && inicioPesca.isNotEmpty)
+          'inicioPesca': inicioPesca,
+        if (finPesca != null && finPesca.isNotEmpty) 'finPesca': finPesca,
+        if (fechaCamaroneraPlanta != null && fechaCamaroneraPlanta.isNotEmpty)
+          'fechaCamaroneraPlanta': fechaCamaroneraPlanta,
+        if (fechaLlegadaCamaronera != null && fechaLlegadaCamaronera.isNotEmpty)
+          'fechaLlegadaCamaronera': fechaLlegadaCamaronera,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Error al actualizar horas: ${response.statusCode}');
+    }
+  }
 }

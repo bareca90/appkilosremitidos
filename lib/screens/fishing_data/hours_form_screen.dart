@@ -1,3 +1,4 @@
+import 'package:appkilosremitidos/core/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -385,20 +386,28 @@ class _HoursFormScreenState extends State<HoursFormScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final provider = Provider.of<FishingDataProvider>(context, listen: false);
+    final authToken = Provider.of<AuthProvider>(context, listen: false).token;
     try {
       // Convertir los valores de tieneCampos a int antes de enviar
+      // Preparar datos para guardar
       final hours = {
-        'inicioPesca': controllers['inicioPesca']!.text,
-        'finPesca': controllers['finPesca']!.text,
-        'fechaCamaroneraPlanta': controllers['fechaCamaroneraPlanta']!.text,
-        'fechaLlegadaCamaronera': controllers['fechaLlegadaCamaronera']!.text,
-        /* 'tieneInicioPesca': tieneCampos['inicioPesca']!,
-        'tieneFinPesca': tieneCampos['finPesca']!,
-        'tieneSalidaCamaronera': tieneCampos['fechaCamaroneraPlanta']!,
-        'tieneLlegadaCamaronera': tieneCampos['fechaLlegadaCamaronera']!, */
+        'inicioPesca': controllers['inicioPesca']!.text.isNotEmpty
+            ? controllers['inicioPesca']!.text
+            : null,
+        'finPesca': controllers['finPesca']!.text.isNotEmpty
+            ? controllers['finPesca']!.text
+            : null,
+        'fechaCamaroneraPlanta':
+            controllers['fechaCamaroneraPlanta']!.text.isNotEmpty
+            ? controllers['fechaCamaroneraPlanta']!.text
+            : null,
+        'fechaLlegadaCamaronera':
+            controllers['fechaLlegadaCamaronera']!.text.isNotEmpty
+            ? controllers['fechaLlegadaCamaronera']!.text
+            : null,
       };
 
-      await provider.saveHours(widget.data.nroGuia, hours);
+      await provider.saveHours(widget.data.nroGuia, hours, authToken!);
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(

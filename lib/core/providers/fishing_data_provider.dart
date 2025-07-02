@@ -56,22 +56,21 @@ class FishingDataProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveHours(String nroGuia, Map<String, dynamic> hours) async {
+  Future<void> saveHours(
+    String nroGuia,
+    Map<String, dynamic> hours,
+    String token,
+  ) async {
     try {
+      /* _isLoading = true;
+      notifyListeners(); */
       // Guardar localmente primero
       await _repository.updateHours(nroGuia, {
         'inicioPesca': hours['inicioPesca'],
         'finPesca': hours['finPesca'],
         'fechaCamaroneraPlanta': hours['fechaCamaroneraPlanta'],
         'fechaLlegadaCamaronera': hours['fechaLlegadaCamaronera'],
-        /* 'tieneInicioPesca': hours['tieneInicioPesca'],
-        'tieneFinPesca': hours['tieneFinPesca'],
-        'tieneSalidaCamaronera': hours['tieneSalidaCamaronera'],
-        'tieneLlegadaCamaronera': hours['tieneLlegadaCamaronera'], */
-      });
-      // TODO AQUI AGREGAR LA LOGICA PARA ENVIAR AL ENDPOINT
-      // Aquí puedes agregar la lógica para enviar al endpoint si es necesario
-      // await _apiService.updateHours(hours);
+      }, token);
 
       // Actualizar la lista local
       final index = _dataList.indexWhere((data) => data.nroGuia == nroGuia);

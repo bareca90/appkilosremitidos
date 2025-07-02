@@ -62,8 +62,41 @@ class FishingDataRepository {
     await _localDbService.updateKilos(nroGuia, kilos);
   }
 
-  Future<void> updateHours(String nroGuia, Map<String, dynamic> hours) async {
-    await _localDbService.updateHours(nroGuia, {
+  Future<void> updateHours(
+    String nroGuia,
+    Map<String, dynamic> hours,
+    String token,
+  ) async {
+    try {
+      // Primero, actualiza los datos en el servidor
+      // Primero actualizar en la API
+      await _apiService.updateDateTimeWaybill(
+        token: token,
+        nroGuia: nroGuia,
+        inicioPesca: hours['inicioPesca'],
+        finPesca: hours['finPesca'],
+        fechaCamaroneraPlanta: hours['fechaCamaroneraPlanta'],
+        fechaLlegadaCamaronera: hours['fechaLlegadaCamaronera'],
+      );
+
+      // Luego actualizar localmente
+      await _localDbService.updateHours(nroGuia, {
+        'inicioPesca': hours['inicioPesca'],
+        'finPesca': hours['finPesca'],
+        'fechaCamaroneraPlanta': hours['fechaCamaroneraPlanta'],
+        'fechaLlegadaCamaronera': hours['fechaLlegadaCamaronera'],
+      });
+    } catch (e) {
+      // Si falla la API, intenta guardar solo localmente
+      await _localDbService.updateHours(nroGuia, {
+        'inicioPesca': hours['inicioPesca'],
+        'finPesca': hours['finPesca'],
+        'fechaCamaroneraPlanta': hours['fechaCamaroneraPlanta'],
+        'fechaLlegadaCamaronera': hours['fechaLlegadaCamaronera'],
+      });
+    }
+
+    /* await _localDbService.updateHours(nroGuia, {
       'inicioPesca': hours['inicioPesca'],
       'finPesca': hours['finPesca'],
       'fechaCamaroneraPlanta': hours['fechaCamaroneraPlanta'],
@@ -72,6 +105,6 @@ class FishingDataRepository {
       'tieneFinPesca': hours['tieneFinPesca'],
       'tieneSalidaCamaronera': hours['tieneSalidaCamaronera'],
       'tieneLlegadaCamaronera': hours['tieneLlegadaCamaronera'], */
-    });
+    }); */
   }
 }

@@ -6,6 +6,7 @@ class ApiConstants {
   // Endpoints
   static const String validateUser = '/auth/validateuser';
   static const String getWaybill = '/data/getwaybill';
+  static const String updatedatetimewaybill = '/data/updatedatetimewaybill';
 
   // Timeouts
   static const int connectTimeout = 15000; // 15 segundos
