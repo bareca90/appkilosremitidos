@@ -1,3 +1,4 @@
+import 'package:appkilosremitidos/screens/fishing_data/widgets/fishing_data_search_delegate.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:appkilosremitidos/core/providers/auth_provider.dart';
@@ -48,6 +49,24 @@ class FishingDataListScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(isKilosScreen ? 'Kilos Remitidos' : 'Registro de Horas'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              final provider = Provider.of<FishingDataProvider>(
+                context,
+                listen: false,
+              );
+              showSearch(
+                context: context,
+                delegate: FishingDataSearchDelegate(
+                  dataList: provider.dataList,
+                  isKilosScreen: isKilosScreen,
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<FishingDataProvider>(
         builder: (context, provider, _) {
@@ -70,6 +89,27 @@ class FishingDataListScreen extends StatelessWidget {
               ),
             );
           }
+          /* final displayList = provider.filteredDataList;
+          if (displayList.isEmpty && provider.filterText.isNotEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('No se encontraron guías con ese número'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Provider.of<FishingDataProvider>(
+                        context,
+                        listen: false,
+                      ).filterData('');
+                    },
+                    child: const Text('Limpiar búsqueda'),
+                  ),
+                ],
+              ),
+            );
+          } */
 
           return RefreshIndicator(
             onRefresh: () => _refreshData(context),

@@ -248,7 +248,10 @@ class FishingDataCard extends StatelessWidget {
   Widget _buildStatusIndicator() {
     final isComplete = isKilosScreen
         ? data.totalKilosRemitidos != null
-        : data.inicioPesca != null && data.finPesca != null;
+        : data.inicioPesca != null &&
+              data.finPesca != null &&
+              data.fechaCamaroneraPlanta != null &&
+              data.fechaLlegadaCamaronera != null;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

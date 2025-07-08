@@ -388,26 +388,60 @@ class _HoursFormScreenState extends State<HoursFormScreen> {
     final provider = Provider.of<FishingDataProvider>(context, listen: false);
     final authToken = Provider.of<AuthProvider>(context, listen: false).token;
     try {
-      // Convertir los valores de tieneCampos a int antes de enviar
+      // Determinar qué campo está siendo guardado
+      List<String> selectedFields = [];
+      // Buscar el primer campo activo (marcado con checkbox)
+      for (var entry in tieneCampos.entries) {
+        if (entry.value == 1) {
+          selectedFields.add(entry.key);
+        }
+      }
+      // Si no hay ningún campo seleccionado, mostrar error
+      if (selectedFields.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Seleccione al menos un campo para guardar'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+      // Validar que los campos seleccionados tengan valores
+      for (var field in selectedFields) {
+        if (controllers[field]!.text.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Por favor ingrese un valor para $field'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+      }
       // Preparar datos para guardar
       final hours = {
-        'inicioPesca': controllers['inicioPesca']!.text.isNotEmpty
+        'inicioPesca': selectedFields.contains('inicioPesca')
             ? controllers['inicioPesca']!.text
-            : null,
-        'finPesca': controllers['finPesca']!.text.isNotEmpty
+            : '',
+        'finPesca': selectedFields.contains('finPesca')
             ? controllers['finPesca']!.text
-            : null,
+            : '',
         'fechaCamaroneraPlanta':
-            controllers['fechaCamaroneraPlanta']!.text.isNotEmpty
+            selectedFields.contains('fechaCamaroneraPlanta')
             ? controllers['fechaCamaroneraPlanta']!.text
-            : null,
+            : '',
         'fechaLlegadaCamaronera':
-            controllers['fechaLlegadaCamaronera']!.text.isNotEmpty
+            selectedFields.contains('fechaLlegadaCamaronera')
             ? controllers['fechaLlegadaCamaronera']!.text
-            : null,
+            : '',
       };
 
-      await provider.saveHours(widget.data.nroGuia, hours, authToken!);
+      await provider.saveHours(
+        widget.data.nroGuia,
+        hours,
+        authToken!,
+        selectedFields,
+      );
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(

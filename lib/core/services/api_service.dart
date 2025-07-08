@@ -94,13 +94,21 @@ class ApiService {
       },
       body: jsonEncode({
         'nroGuia': nroGuia,
-        if (inicioPesca != null && inicioPesca.isNotEmpty)
-          'inicioPesca': inicioPesca,
-        if (finPesca != null && finPesca.isNotEmpty) 'finPesca': finPesca,
-        if (fechaCamaroneraPlanta != null && fechaCamaroneraPlanta.isNotEmpty)
-          'fechaCamaroneraPlanta': fechaCamaroneraPlanta,
-        if (fechaLlegadaCamaronera != null && fechaLlegadaCamaronera.isNotEmpty)
-          'fechaLlegadaCamaronera': fechaLlegadaCamaronera,
+        'inicioPesca': (inicioPesca != null && inicioPesca.isNotEmpty)
+            ? inicioPesca
+            : '1753-01-01 00:00',
+        'finPesca': (finPesca != null && finPesca.isNotEmpty)
+            ? finPesca
+            : '1753-01-01 00:00',
+        'fechaCamaroneraPlanta':
+            (fechaCamaroneraPlanta != null && fechaCamaroneraPlanta.isNotEmpty)
+            ? fechaCamaroneraPlanta
+            : '1753-01-01 00:00',
+        'fechaLlegadaCamaronera':
+            (fechaLlegadaCamaronera != null &&
+                fechaLlegadaCamaronera.isNotEmpty)
+            ? fechaLlegadaCamaronera
+            : '1753-01-01 00:00',
       }),
     );
 

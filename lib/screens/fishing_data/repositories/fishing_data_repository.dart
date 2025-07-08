@@ -66,25 +66,52 @@ class FishingDataRepository {
     String nroGuia,
     Map<String, dynamic> hours,
     String token,
+    List<String> selectedFields,
   ) async {
     try {
-      // Primero, actualiza los datos en el servidor
-      // Primero actualizar en la API
+      final apiData = {
+        'inicioPesca': selectedFields.contains('inicioPesca')
+            ? hours['inicioPesca']
+            : null,
+        'finPesca': selectedFields.contains('finPesca')
+            ? hours['finPesca']
+            : null,
+        'fechaCamaroneraPlanta':
+            selectedFields.contains('fechaCamaroneraPlanta')
+            ? hours['fechaCamaroneraPlanta']
+            : null,
+        'fechaLlegadaCamaronera':
+            selectedFields.contains('fechaLlegadaCamaronera')
+            ? hours['fechaLlegadaCamaronera']
+            : null,
+      };
+      print('Actualizando horas para $nroGuia: $apiData');
+      // Actualizar en la API
       await _apiService.updateDateTimeWaybill(
         token: token,
         nroGuia: nroGuia,
-        inicioPesca: hours['inicioPesca'],
-        finPesca: hours['finPesca'],
-        fechaCamaroneraPlanta: hours['fechaCamaroneraPlanta'],
-        fechaLlegadaCamaronera: hours['fechaLlegadaCamaronera'],
+        inicioPesca: apiData['inicioPesca'],
+        finPesca: apiData['finPesca'],
+        fechaCamaroneraPlanta: apiData['fechaCamaroneraPlanta'],
+        fechaLlegadaCamaronera: apiData['fechaLlegadaCamaronera'],
       );
 
       // Luego actualizar localmente
       await _localDbService.updateHours(nroGuia, {
-        'inicioPesca': hours['inicioPesca'],
-        'finPesca': hours['finPesca'],
-        'fechaCamaroneraPlanta': hours['fechaCamaroneraPlanta'],
-        'fechaLlegadaCamaronera': hours['fechaLlegadaCamaronera'],
+        'inicioPesca': selectedFields.contains('inicioPesca')
+            ? hours['inicioPesca']?.toString() ?? ''
+            : '',
+        'finPesca': selectedFields.contains('finPesca')
+            ? hours['finPesca']?.toString() ?? ''
+            : '',
+        'fechaCamaroneraPlanta':
+            selectedFields.contains('fechaCamaroneraPlanta')
+            ? hours['fechaCamaroneraPlanta']?.toString() ?? ''
+            : '',
+        'fechaLlegadaCamaronera':
+            selectedFields.contains('fechaLlegadaCamaronera')
+            ? hours['fechaLlegadaCamaronera']?.toString() ?? ''
+            : '',
       });
     } catch (e) {
       // Si falla la API, intenta guardar solo localmente
@@ -95,16 +122,5 @@ class FishingDataRepository {
         'fechaLlegadaCamaronera': hours['fechaLlegadaCamaronera'],
       });
     }
-
-    /* await _localDbService.updateHours(nroGuia, {
-      'inicioPesca': hours['inicioPesca'],
-      'finPesca': hours['finPesca'],
-      'fechaCamaroneraPlanta': hours['fechaCamaroneraPlanta'],
-      'fechaLlegadaCamaronera': hours['fechaLlegadaCamaronera'],
-      /* 'tieneInicioPesca': hours['tieneInicioPesca'],
-      'tieneFinPesca': hours['tieneFinPesca'],
-      'tieneSalidaCamaronera': hours['tieneSalidaCamaronera'],
-      'tieneLlegadaCamaronera': hours['tieneLlegadaCamaronera'], */
-    }); */
   }
 }

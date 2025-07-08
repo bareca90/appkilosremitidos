@@ -11,11 +11,29 @@ class FishingDataProvider with ChangeNotifier {
   String? _errorMessage;
   List<FishingData> _dataList = [];
   FishingData? _selectedData;
+  List<FishingData> _filteredDataList = [];
+  String _filterText = '';
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<FishingData> get dataList => _dataList;
   FishingData? get selectedData => _selectedData;
+
+  List<FishingData> get filteredDataList =>
+      _filterText.isEmpty ? _dataList : _filteredDataList;
+  String get filterText => _filterText;
+
+  void filterData(String query) {
+    _filterText = query;
+    if (query.isEmpty) {
+      _filteredDataList = _dataList;
+    } else {
+      _filteredDataList = _dataList.where((data) {
+        return data.nroGuia.toLowerCase().contains(query.toLowerCase());
+      }).toList();
+    }
+    notifyListeners();
+  }
 
   Future<void> fetchData(String token, String option) async {
     if (!_isLoading) {
@@ -60,26 +78,73 @@ class FishingDataProvider with ChangeNotifier {
     String nroGuia,
     Map<String, dynamic> hours,
     String token,
+    List<String> selectedFields,
   ) async {
     try {
       /* _isLoading = true;
       notifyListeners(); */
+      // Convertir valores vacíos a null para la API
+      /* final apiHours = {
+        'inicioPesca': hours['inicioPesca'].toString().isEmpty
+            ? null
+            : hours['inicioPesca'],
+        'finPesca': hours['finPesca'].toString().isEmpty
+            ? null
+            : hours['finPesca'],
+        'fechaCamaroneraPlanta':
+            hours['fechaCamaroneraPlanta'].toString().isEmpty
+            ? null
+            : hours['fechaCamaroneraPlanta'],
+        'fechaLlegadaCamaronera':
+            hours['fechaLlegadaCamaronera'].toString().isEmpty
+            ? null
+            : hours['fechaLlegadaCamaronera'],
+      }; */
       // Guardar localmente primero
-      await _repository.updateHours(nroGuia, {
-        'inicioPesca': hours['inicioPesca'],
-        'finPesca': hours['finPesca'],
-        'fechaCamaroneraPlanta': hours['fechaCamaroneraPlanta'],
-        'fechaLlegadaCamaronera': hours['fechaLlegadaCamaronera'],
-      }, token);
+      /* await _repository.updateHours(
+        nroGuia,
+        {
+          'inicioPesca': hours['inicioPesca'],
+          'finPesca': hours['finPesca'],
+          'fechaCamaroneraPlanta': hours['fechaCamaroneraPlanta'],
+          'fechaLlegadaCamaronera': hours['fechaLlegadaCamaronera'],
+        },
+        token,
+        selectedField,
+      ); */
+      await _repository.updateHours(
+        nroGuia,
+        hours, // Usamos la versión con nulls para la API
+        token,
+        selectedFields,
+      );
 
       // Actualizar la lista local
       final index = _dataList.indexWhere((data) => data.nroGuia == nroGuia);
       if (index != -1) {
         _dataList[index] = _dataList[index].copyWith(
-          inicioPesca: hours['inicioPesca'],
-          finPesca: hours['finPesca'],
-          fechaCamaroneraPlanta: hours['fechaCamaroneraPlanta'],
-          fechaLlegadaCamaronera: hours['fechaLlegadaCamaronera'],
+          inicioPesca: selectedFields.contains('inicioPesca')
+              ? hours['inicioPesca'].toString().isNotEmpty
+                    ? hours['inicioPesca']
+                    : null
+              : null,
+          finPesca: selectedFields.contains('finPesca')
+              ? hours['finPesca'].toString().isNotEmpty
+                    ? hours['finPesca']
+                    : null
+              : null,
+          fechaCamaroneraPlanta:
+              selectedFields.contains('fechaCamaroneraPlanta')
+              ? hours['fechaCamaroneraPlanta'].toString().isNotEmpty
+                    ? hours['fechaCamaroneraPlanta']
+                    : null
+              : null,
+          fechaLlegadaCamaronera:
+              selectedFields.contains('fechaLlegadaCamaronera')
+              ? hours['fechaLlegadaCamaronera'].toString().isNotEmpty
+                    ? hours['fechaLlegadaCamaronera']
+                    : null
+              : null,
           tieneInicioPesca: hours['tieneInicioPesca'],
           tieneFinPesca: hours['tieneFinPesca'],
           tieneSalidaCamaronera: hours['tieneSalidaCamaronera'],
