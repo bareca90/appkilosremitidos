@@ -89,27 +89,6 @@ class FishingDataListScreen extends StatelessWidget {
               ),
             );
           }
-          /* final displayList = provider.filteredDataList;
-          if (displayList.isEmpty && provider.filterText.isNotEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('No se encontraron guías con ese número'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      Provider.of<FishingDataProvider>(
-                        context,
-                        listen: false,
-                      ).filterData('');
-                    },
-                    child: const Text('Limpiar búsqueda'),
-                  ),
-                ],
-              ),
-            );
-          } */
 
           return RefreshIndicator(
             onRefresh: () => _refreshData(context),

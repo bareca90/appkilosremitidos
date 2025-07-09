@@ -131,4 +131,9 @@ class LocalDbService {
     final db = await database;
     await db.delete(_tableName);
   }
+
+  Future<void> deleteFishingData(String nroGuia) async {
+    final db = await database;
+    await db.delete(_tableName, where: 'nroGuia = ?', whereArgs: [nroGuia]);
+  }
 }

@@ -18,7 +18,6 @@ class FishingDataRepository {
   ) async {
     try {
       final response = await _apiService.getWaybillData(token, option);
-
       // Verifica si la respuesta es una lista o un mapa
       final dynamic responseData = response['data'];
       List<FishingData> dataList = [];
@@ -34,6 +33,8 @@ class FishingDataRepository {
       } else {
         throw Exception('Formato de datos no reconocido');
       }
+      // Limpiar la base de datos local primero
+      await _localDbService.clearDatabase();
 
       // Guarda todos los datos en local
       for (final data in dataList) {
