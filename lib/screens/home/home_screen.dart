@@ -82,11 +82,7 @@ class HomeScreen extends StatelessWidget {
                     color: AppColors.primaryBlue,
                     onTap: () {
                       // Navegar a pantalla de registro de kilos
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.fishingDataList,
-                        arguments: {'option': 'GSK', 'isKilosScreen': true},
-                      );
+                      Navigator.pushNamed(context, AppRoutes.materialPescaList);
                     },
                   ),
                   const SizedBox(height: 20),

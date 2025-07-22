@@ -1,8 +1,10 @@
 import 'package:appkilosremitidos/core/providers/connectivity_provider.dart';
 import 'package:appkilosremitidos/core/providers/fishing_data_provider.dart';
+import 'package:appkilosremitidos/core/providers/material_pesca_provider.dart';
 import 'package:appkilosremitidos/core/services/api_service.dart';
 import 'package:appkilosremitidos/core/services/local_db_service.dart';
 import 'package:appkilosremitidos/screens/fishing_data/repositories/fishing_data_repository.dart';
+import 'package:appkilosremitidos/screens/material_pesca/repositories/material_pesca_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/providers/auth_provider.dart';
@@ -33,6 +35,14 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(
           create: (_) => FishingDataProvider(fishingRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => MaterialPescaProvider(
+            MaterialPescaRepository(
+              apiService: ApiService(),
+              localDbService: LocalDbService(),
+            ),
+          ),
         ),
       ],
       child: const MyApp(),

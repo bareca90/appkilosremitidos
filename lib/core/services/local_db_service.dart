@@ -1,11 +1,12 @@
 import 'package:appkilosremitidos/models/fishing_data.dart';
+import 'package:appkilosremitidos/models/material_pesca.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class LocalDbService {
-  static const String _dbName = 'fishing_datos.db';
+  static const String _dbName = 'fishing_datosKg.db';
   static const String _tableName = 'fishing_data';
-  static const int _dbVersion = 3;
+  static const int _dbVersion = 4;
 
   Database? _database;
 
@@ -41,6 +42,28 @@ class LocalDbService {
             tieneKilosRemitidos INTEGER DEFAULT 0
           )
         ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS material_pesca (
+            nroGuia TEXT PRIMARY KEY,
+            tipoPesca TEXT NOT NULL,
+            nroPesca TEXT NOT NULL,
+            fechaGuia TEXT NOT NULL,
+            camaronera TEXT NOT NULL,
+            codPiscina TEXT NOT NULL,
+            piscina TEXT NOT NULL,
+            ciclo TEXT,
+            anioSiembra INTEGER,
+            lote INTEGER,
+            ingresoCompra TEXT,
+            tipoMaterial TEXT,
+            cantidadMaterial INTEGER,
+            unidadMedida TEXT,
+            cantidadRemitida REAL,
+            gramaje REAL,
+            proceso TEXT,
+            tieneRegistro INTEGER DEFAULT 0
+          )
+        ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -62,6 +85,48 @@ class LocalDbService {
         }
       },
     );
+  }
+
+  // Agregar estos métodos a la clase LocalDbService
+  Future<void> insertMaterialPesca(MaterialPesca data) async {
+    final db = await database;
+    await db.insert(
+      'material_pesca',
+      data.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<MaterialPesca>> getAllMaterialPesca() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('material_pesca');
+    return maps.map((map) => MaterialPesca.fromJson(map)).toList();
+  }
+
+  Future<MaterialPesca?> getMaterialPescaByGuide(String nroGuia) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'material_pesca',
+      where: 'nroGuia = ?',
+      whereArgs: [nroGuia],
+      limit: 1,
+    );
+    return maps.isNotEmpty ? MaterialPesca.fromJson(maps.first) : null;
+  }
+
+  Future<void> updateMaterialPesca(MaterialPesca data) async {
+    final db = await database;
+    await db.update(
+      'material_pesca',
+      data.toMap(),
+      where: 'nroGuia = ?',
+      whereArgs: [data.nroGuia],
+    );
+  }
+
+  Future<void> clearMaterialPesca() async {
+    final db = await database;
+    await db.delete('material_pesca');
   }
 
   // Método para insertar datos de pesca (alias de saveFishingData)
@@ -135,5 +200,16 @@ class LocalDbService {
   Future<void> deleteFishingData(String nroGuia) async {
     final db = await database;
     await db.delete(_tableName, where: 'nroGuia = ?', whereArgs: [nroGuia]);
+  }
+
+  Future<List<MaterialPesca>> getMaterialesByGuia(String nroGuia) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'material_pesca',
+      where: 'nroGuia = ?',
+      whereArgs: [nroGuia],
+      orderBy: 'lote ASC',
+    );
+    return maps.map((map) => MaterialPesca.fromJson(map)).toList();
   }
 }
