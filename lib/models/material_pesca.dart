@@ -8,7 +8,7 @@ class MaterialPesca {
   final String piscina;
   final String? ciclo;
   final int? anioSiembra;
-  final int? lote;
+  final int lote;
   final String? ingresoCompra;
   final String? tipoMaterial;
   final int? cantidadMaterial;
@@ -17,6 +17,8 @@ class MaterialPesca {
   final double? gramaje;
   final String? proceso;
   final int tieneRegistro;
+  final int sincronizado; // 0 = no sincronizado, 1 = sincronizado
+  final DateTime? fechaSincronizacion;
 
   MaterialPesca({
     required this.tipoPesca,
@@ -28,7 +30,7 @@ class MaterialPesca {
     required this.piscina,
     this.ciclo,
     this.anioSiembra,
-    this.lote,
+    required this.lote,
     this.ingresoCompra,
     this.tipoMaterial,
     this.cantidadMaterial,
@@ -37,6 +39,8 @@ class MaterialPesca {
     this.gramaje,
     this.proceso,
     this.tieneRegistro = 0,
+    this.sincronizado = 0,
+    this.fechaSincronizacion,
   });
 
   factory MaterialPesca.fromJson(Map<String, dynamic> json) {
@@ -54,7 +58,7 @@ class MaterialPesca {
       anioSiembra: json['anioSiembra'] != null
           ? int.tryParse(json['anioSiembra'].toString())
           : null,
-      lote: json['lote'] != null ? int.tryParse(json['lote'].toString()) : null,
+      lote: json['lote'] ?? _generarNuevoLote(),
       ingresoCompra: json['ingresoCompra'],
       tipoMaterial: json['tipoMaterial'],
       cantidadMaterial: json['cantidadMaterial'] != null
@@ -69,7 +73,15 @@ class MaterialPesca {
           : null,
       proceso: json['proceso'],
       tieneRegistro: json['tieneRegistro'] ?? 0,
+      sincronizado: json['sincronizado'] ?? 0,
+      fechaSincronizacion: json['fechaSincronizacion'] != null
+          ? DateTime.parse(json['fechaSincronizacion'])
+          : null,
     );
+  }
+  static int _generarNuevoLote() {
+    // Lógica para generar nuevo lote (puedes usar timestamp u otro método)
+    return 0;
   }
 
   Map<String, dynamic> toMap() {
@@ -92,6 +104,8 @@ class MaterialPesca {
       'gramaje': gramaje,
       'proceso': proceso,
       'tieneRegistro': tieneRegistro,
+      'sincronizado': sincronizado,
+      'fechaSincronizacion': fechaSincronizacion?.toIso8601String(),
     };
   }
 
@@ -114,6 +128,8 @@ class MaterialPesca {
     double? gramaje,
     String? proceso,
     int? tieneRegistro,
+    int? sincronizado,
+    DateTime? fechaSincronizacion,
   }) {
     return MaterialPesca(
       tipoPesca: tipoPesca ?? this.tipoPesca,
@@ -134,6 +150,8 @@ class MaterialPesca {
       gramaje: gramaje ?? this.gramaje,
       proceso: proceso ?? this.proceso,
       tieneRegistro: tieneRegistro ?? this.tieneRegistro,
+      sincronizado: sincronizado ?? this.sincronizado,
+      fechaSincronizacion: fechaSincronizacion ?? this.fechaSincronizacion,
     );
   }
 }

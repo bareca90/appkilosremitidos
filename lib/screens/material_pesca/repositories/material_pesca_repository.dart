@@ -91,4 +91,42 @@ class MaterialPescaRepository {
   Future<void> updateMaterialPesca(MaterialPesca data) async {
     await _localDbService.updateMaterialPesca(data);
   }
+
+  Future<bool> sincronizarMaterial(MaterialPesca material, String token) async {
+    try {
+      final success = await _apiService.insertKgsent(
+        token: token,
+        nroGuia: material.nroGuia,
+        ciclo: material.ciclo ?? 'A', // Valor por defecto si es null
+        anioSiembra: material.anioSiembra ?? DateTime.now().year,
+        lote: material.lote,
+        ingresoCompra: material.ingresoCompra ?? 'N',
+        tipoMaterial: material.tipoMaterial ?? '',
+        cantidadMaterial: material.cantidadMaterial ?? 0,
+        unidadMedida: material.unidadMedida ?? 'KG',
+        cantidadRemitida: material.cantidadRemitida ?? 0,
+        gramaje: material.gramaje ?? 0,
+        proceso: material.proceso ?? 'CC',
+      );
+
+      if (success) {
+        await _localDbService.marcarComoSincronizado(
+          material.nroGuia,
+          material.lote,
+        );
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error al sincronizar material: $e');
+      return false;
+    }
+  }
+
+  Future<void> sincronizarMaterialesPendientes(String token) async {
+    final materiales = await _localDbService.getMaterialesNoSincronizados();
+    for (final material in materiales) {
+      await sincronizarMaterial(material, token);
+    }
+  }
 }

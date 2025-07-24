@@ -1,3 +1,4 @@
+import 'package:appkilosremitidos/core/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:appkilosremitidos/models/material_pesca.dart';
 import 'package:appkilosremitidos/screens/material_pesca/material_pesca_form_screen.dart';
@@ -81,6 +82,7 @@ class MaterialPescaDetailScreen extends StatelessWidget {
 
   Future<void> _navigateToForm(BuildContext context) async {
     final provider = Provider.of<MaterialPescaProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     try {
       // Obtener el próximo número de lote
@@ -104,7 +106,11 @@ class MaterialPescaDetailScreen extends StatelessWidget {
       );
       // Si se guardó exitosamente, recargar datos
       if (result == true && context.mounted) {
+        // 1. Recargar los materiales de esta guía
         await provider.loadMaterialesPorGuia(material.nroGuia);
+
+        // 2. Recargar TODAS las guías
+        await provider.fetchData(authProvider.token!);
       }
     } catch (e) {
       if (context.mounted) {
@@ -149,6 +155,24 @@ class _HeaderCard extends StatelessWidget {
                     material.tipoPesca,
                     style: const TextStyle(color: Colors.blue),
                   ),
+                ),
+                Text(
+                  'Lote: ${material.lote}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Row(
+                  children: [
+                    if (material.tieneRegistro == 1)
+                      const Icon(Icons.check_circle, color: Colors.green),
+                    const SizedBox(width: 4),
+                    if (material.sincronizado == 1)
+                      const Icon(Icons.cloud_done, color: Colors.blue),
+                    if (material.sincronizado == 0)
+                      const Icon(Icons.cloud_off, color: Colors.orange),
+                  ],
                 ),
               ],
             ),
@@ -207,9 +231,7 @@ class _DetailList extends StatelessWidget {
     final provider = Provider.of<MaterialPescaProvider>(context);
     final detalles =
         provider.materialesList.where((m) => m.nroGuia == nroGuia).toList()
-          ..sort(
-            (a, b) => (a.lote ?? 0).compareTo(b.lote ?? 0),
-          ); // Ordenar por lote
+          ..sort((a, b) => (a.lote).compareTo(b.lote)); // Ordenar por lote
 
     if (detalles.isEmpty) {
       return _buildEmptyState();
@@ -272,7 +294,7 @@ class _DetailCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Lote: ${detalle.lote ?? "N/A"}',
+                  'Lote: ${detalle.lote}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,

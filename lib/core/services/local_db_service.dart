@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class LocalDbService {
-  static const String _dbName = 'fishing_datosKg.db';
+  static const String _dbName = 'fishing_datosKgRem.db';
   static const String _tableName = 'fishing_data';
   static const int _dbVersion = 4;
 
@@ -44,7 +44,7 @@ class LocalDbService {
         ''');
         await db.execute('''
           CREATE TABLE IF NOT EXISTS material_pesca (
-            nroGuia TEXT PRIMARY KEY,
+            nroGuia TEXT NOT NULL,
             tipoPesca TEXT NOT NULL,
             nroPesca TEXT NOT NULL,
             fechaGuia TEXT NOT NULL,
@@ -53,7 +53,7 @@ class LocalDbService {
             piscina TEXT NOT NULL,
             ciclo TEXT,
             anioSiembra INTEGER,
-            lote INTEGER,
+            lote INTEGER NOT NULL,
             ingresoCompra TEXT,
             tipoMaterial TEXT,
             cantidadMaterial INTEGER,
@@ -61,7 +61,10 @@ class LocalDbService {
             cantidadRemitida REAL,
             gramaje REAL,
             proceso TEXT,
-            tieneRegistro INTEGER DEFAULT 0
+            tieneRegistro INTEGER DEFAULT 0,
+            sincronizado INTEGER DEFAULT 0,
+            fechaSincronizacion TEXT,
+            PRIMARY KEY (nroGuia, lote)
           )
         ''');
       },
@@ -97,9 +100,36 @@ class LocalDbService {
     );
   }
 
+  Future<List<MaterialPesca>> getMaterialesNoSincronizados() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'material_pesca',
+      where: 'sincronizado = ?',
+      whereArgs: [0],
+    );
+    return maps.map((map) => MaterialPesca.fromJson(map)).toList();
+  }
+
+  Future<void> marcarComoSincronizado(String nroGuia, int lote) async {
+    final db = await database;
+    await db.update(
+      'material_pesca',
+      {
+        'sincronizado': 1,
+        'fechaSincronizacion': DateTime.now().toIso8601String(),
+      },
+      where: 'nroGuia = ? AND lote = ?',
+      whereArgs: [nroGuia, lote],
+    );
+  }
+
   Future<List<MaterialPesca>> getAllMaterialPesca() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('material_pesca');
+    final List<Map<String, dynamic>> maps = await db.query(
+      'material_pesca',
+      where: 'sincronizado = ?',
+      whereArgs: [0],
+    );
     return maps.map((map) => MaterialPesca.fromJson(map)).toList();
   }
 
@@ -126,7 +156,12 @@ class LocalDbService {
 
   Future<void> clearMaterialPesca() async {
     final db = await database;
-    await db.delete('material_pesca');
+    await db.delete(
+      'material_pesca',
+      where: '''
+        (lote IS NULL OR lote = 0) 
+      ''',
+    );
   }
 
   // Método para insertar datos de pesca (alias de saveFishingData)

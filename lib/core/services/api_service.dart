@@ -118,4 +118,46 @@ class ApiService {
       throw Exception('Error al actualizar horas: ${response.statusCode}');
     }
   }
+
+  Future<bool> insertKgsent({
+    required String token,
+    required String nroGuia,
+    required String ciclo,
+    required int anioSiembra,
+    required int lote,
+    required String ingresoCompra,
+    required String tipoMaterial,
+    required int cantidadMaterial,
+    required String unidadMedida,
+    required double cantidadRemitida,
+    required double gramaje,
+    required String proceso,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('${ApiConstants.baseUrl}/data/insertkgsent'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        "nroGuia": nroGuia,
+        "ciclo": ciclo,
+        "anioSiembra": anioSiembra,
+        "lote": lote,
+        "ingresoCompra": ingresoCompra,
+        "tipoMaterial": tipoMaterial,
+        "cantidadMaterial": cantidadMaterial,
+        "unidadMedida": unidadMedida,
+        "cantidadRemitida": cantidadRemitida,
+        "gramaje": gramaje,
+        "proceso": proceso,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      throw Exception('Error al sincronizar: ${response.statusCode}');
+    }
+  }
 }

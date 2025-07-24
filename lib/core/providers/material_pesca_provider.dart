@@ -49,14 +49,17 @@ class MaterialPescaProvider with ChangeNotifier {
 
     try {
       _dataList = await _repository.fetchMaterialPesca(token);
+      _filteredDataList = _dataList;
       _errorMessage = null;
     } catch (e) {
       _errorMessage = e.toString();
       try {
         _dataList = await _repository.getLocalMaterialPesca();
+        _filteredDataList = _dataList;
       } catch (localError) {
         _errorMessage = "Error al cargar datos: ${e.toString()}";
         _dataList = [];
+        _filteredDataList = [];
       }
     } finally {
       _isLoading = false;
@@ -84,7 +87,7 @@ class MaterialPescaProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> saveMaterialPesca(MaterialPesca data) async {
+  /* Future<bool> saveMaterialPesca(MaterialPesca data) async {
     try {
       await _repository.updateMaterialPesca(data);
 
@@ -95,9 +98,35 @@ class MaterialPescaProvider with ChangeNotifier {
         _dataList.add(data);
       }
       // Ordenar por lote
-      _dataList.sort((a, b) => (a.lote ?? 0).compareTo(b.lote ?? 0));
+      _dataList.sort((a, b) => (a.lote).compareTo(b.lote));
 
       notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Error al guardar: ${e.toString()}';
+      notifyListeners();
+      return false;
+    }
+  } */
+  Future<bool> saveMaterialPesca(MaterialPesca data) async {
+    try {
+      // Guardar localmente primero
+      await _repository.updateMaterialPesca(data.copyWith(sincronizado: 0));
+
+      // Actualizar la lista en memoria
+      final index = _dataList.indexWhere(
+        (d) => d.nroGuia == data.nroGuia && d.lote == data.lote,
+      );
+
+      if (index != -1) {
+        _dataList[index] = data.copyWith(sincronizado: 0);
+      } else {
+        _dataList.add(data.copyWith(sincronizado: 0));
+      }
+
+      _dataList.sort((a, b) => (a.lote).compareTo(b.lote));
+      notifyListeners();
+
       return true;
     } catch (e) {
       _errorMessage = 'Error al guardar: ${e.toString()}';
@@ -128,12 +157,34 @@ class MaterialPescaProvider with ChangeNotifier {
   int getNextLote(String nroGuia) {
     final materiales = _dataList.where((m) => m.nroGuia == nroGuia).toList();
     if (materiales.isEmpty) return 1;
-    return (materiales.last.lote ?? 0) + 1;
+    return (materiales.last.lote) + 1;
   }
 
   List<MaterialPesca> get materialesList => _filteredDataList;
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  Future<void> sincronizarMateriales(String token) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _repository.sincronizarMaterialesPendientes(token);
+
+      // Actualizar los datos locales después de la sincronización
+      _dataList = await _repository.getLocalMaterialPesca();
+      _filteredDataList = _dataList;
+
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = 'Error al sincronizar: ${e.toString()}';
+      notifyListeners();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

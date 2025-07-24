@@ -53,6 +53,38 @@ class MaterialPescaListScreen extends StatelessWidget {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.sync),
+            onPressed: () async {
+              final provider = Provider.of<MaterialPescaProvider>(
+                context,
+                listen: false,
+              );
+              final authProvider = Provider.of<AuthProvider>(
+                context,
+                listen: false,
+              );
+
+              try {
+                await provider.sincronizarMateriales(authProvider.token!);
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Sincronización completada'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error al sincronizar: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+          ),
         ],
       ),
       body: Consumer<MaterialPescaProvider>(
@@ -88,6 +120,15 @@ class MaterialPescaListScreen extends StatelessWidget {
                   data: data,
                   onTap: () async {
                     try {
+                      final provider = Provider.of<MaterialPescaProvider>(
+                        context,
+                        listen: false,
+                      );
+                      final authProvider = Provider.of<AuthProvider>(
+                        context,
+                        listen: false,
+                      );
+
                       // 1. Obtener el material seleccionado
                       final selected = await provider.selectData(data.nroGuia);
 
@@ -100,13 +141,18 @@ class MaterialPescaListScreen extends StatelessWidget {
 
                       // 3. Navegar usando MaterialPageRoute directamente
                       if (context.mounted) {
-                        Navigator.push(
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) =>
                                 MaterialPescaDetailScreen(material: selected),
                           ),
                         );
+
+                        // 4. Si regresamos de la pantalla de detalle, recargar datos
+                        if (result == true && context.mounted) {
+                          await provider.fetchData(authProvider.token!);
+                        }
                       }
                     } catch (e) {
                       if (context.mounted) {

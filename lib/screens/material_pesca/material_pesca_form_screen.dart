@@ -1,3 +1,4 @@
+import 'package:appkilosremitidos/core/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:appkilosremitidos/core/providers/material_pesca_provider.dart';
@@ -39,8 +40,11 @@ class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
           listen: false,
         );
 
-        // Marcar como registro completo
-        _formData = _formData.copyWith(tieneRegistro: 1);
+        // Marcar como registro completo pero no sincronizado
+        _formData = _formData.copyWith(tieneRegistro: 1, sincronizado: 0);
+
+        /* await provider.saveMaterialPesca(_formData); */
+        /* if (!mounted) return; */
 
         final success = await provider.saveMaterialPesca(_formData);
 
@@ -48,17 +52,26 @@ class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
           // ignore: use_build_context_synchronously
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Material guardado correctamente'),
+              content: Text('Material guardado localmente correctamente'),
               backgroundColor: Colors.green,
             ),
           );
+          // Opcional: Iniciar sincronización automática
           // ignore: use_build_context_synchronously
-          Navigator.pop(context, true); // Devuelve true indicando éxito
+          final authProvider = Provider.of<AuthProvider>(
+            // ignore: use_build_context_synchronously
+            context,
+            listen: false,
+          );
+          await provider.sincronizarMateriales(authProvider.token!);
+
+          // ignore: use_build_context_synchronously
+          Navigator.pop(context, true);
         } else {
           // ignore: use_build_context_synchronously
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Error al guardar el material'),
+              content: Text('Error al guardar el material localmente'),
               backgroundColor: Colors.red,
             ),
           );
@@ -67,7 +80,7 @@ class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar el material : $e'),
+            content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -84,7 +97,7 @@ class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _formData.lote == null
+          _formData.lote == 0
               ? 'Nuevo Material'
               : 'Editar Material Lote ${_formData.lote}',
         ),
@@ -155,7 +168,7 @@ class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
                   filled: true,
                   fillColor: Colors.grey[100],
                 ),
-                initialValue: _formData.lote?.toString(),
+                initialValue: _formData.lote.toString(),
                 readOnly: true,
               ),
               const SizedBox(height: 16),
