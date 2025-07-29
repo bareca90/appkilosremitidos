@@ -1,9 +1,10 @@
-import 'package:appkilosremitidos/core/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'package:appkilosremitidos/core/providers/auth_provider.dart';
 import 'package:appkilosremitidos/core/providers/material_pesca_provider.dart';
 import 'package:appkilosremitidos/models/material_pesca.dart';
-import 'package:intl/intl.dart';
+import 'package:appkilosremitidos/screens/material_pesca/widgets/form_fields.dart';
 
 class MaterialPescaFormScreen extends StatefulWidget {
   final MaterialPesca data;
@@ -11,19 +12,14 @@ class MaterialPescaFormScreen extends StatefulWidget {
   const MaterialPescaFormScreen({super.key, required this.data});
 
   @override
-  // ignore: library_private_types_in_public_api
-  _MaterialPescaFormScreenState createState() =>
+  State<MaterialPescaFormScreen> createState() =>
       _MaterialPescaFormScreenState();
 }
 
 class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late MaterialPesca _formData;
-  final List<String> _cicloOptions = ['A', 'B', 'C', 'D', 'E', 'F'];
-  final List<String> _ingresoCompraOptions = ['S', 'N'];
-  final List<String> _tipoMaterialOptions = ['Bin', 'Gvts'];
-  final List<String> _unidadMedidaOptions = ['KG', 'LBS'];
-  final List<String> _procesoOptions = ['CC', 'SC', 'CL'];
+  final _formFields = MaterialPescaFormFields();
 
   @override
   void initState() {
@@ -32,59 +28,56 @@ class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
   }
 
   Future<void> _saveForm() async {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      try {
-        final provider = Provider.of<MaterialPescaProvider>(
-          context,
-          listen: false,
+    if (!_formKey.currentState!.validate()) return;
+
+    _formKey.currentState!.save();
+
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final provider = Provider.of<MaterialPescaProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    try {
+      setState(() => _formFields.isSaving = true);
+
+      _formData = _formData.copyWith(
+        tieneRegistro: 1,
+        sincronizado: 0,
+        fechaSincronizacion: null,
+      );
+
+      final success = await provider.saveMaterialPesca(_formData);
+
+      if (!mounted) return;
+
+      if (success) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Material guardado correctamente'),
+            backgroundColor: Colors.green,
+          ),
         );
 
-        // Marcar como registro completo pero no sincronizado
-        _formData = _formData.copyWith(tieneRegistro: 1, sincronizado: 0);
+        // Sincronización en segundo plano
+        await provider.sincronizarMateriales(authProvider.token!);
 
-        /* await provider.saveMaterialPesca(_formData); */
-        /* if (!mounted) return; */
-
-        final success = await provider.saveMaterialPesca(_formData);
-
-        if (success) {
-          // ignore: use_build_context_synchronously
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Material guardado localmente correctamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          // Opcional: Iniciar sincronización automática
-          // ignore: use_build_context_synchronously
-          final authProvider = Provider.of<AuthProvider>(
-            // ignore: use_build_context_synchronously
-            context,
-            listen: false,
-          );
-          await provider.sincronizarMateriales(authProvider.token!);
-
-          // ignore: use_build_context_synchronously
-          Navigator.pop(context, true);
-        } else {
-          // ignore: use_build_context_synchronously
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error al guardar el material localmente'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } catch (e) {
-        // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
+        if (mounted) Navigator.pop(context, true);
+      } else {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Error al guardar el material'),
             backgroundColor: Colors.red,
           ),
         );
       }
+    } catch (e) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _formFields.isSaving = false);
     }
   }
 
@@ -99,12 +92,13 @@ class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
         title: Text(
           _formData.lote == 0
               ? 'Nuevo Material'
-              : 'Editar Material Lote ${_formData.lote}',
+              : 'Editar Lote ${_formData.lote}',
+          style: const TextStyle(fontSize: 18),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
-            onPressed: _saveForm,
+            onPressed: _formFields.isSaving ? null : _saveForm,
             tooltip: 'Guardar',
           ),
         ],
@@ -116,229 +110,11 @@ class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Información de la guía
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'INFORMACIÓN DE LA GUÍA',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildInfoRow('Guía:', _formData.nroGuia),
-                      _buildInfoRow('Programa:', _formData.nroPesca),
-                      _buildInfoRow('Camaronera:', _formData.camaronera.trim()),
-                      _buildInfoRow('Piscina:', _formData.piscina.trim()),
-                      _buildInfoRow(
-                        'Fecha:',
-                        dateFormat.format(_formData.fechaGuia),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
+              _buildGuideInfoCard(dateFormat),
               const SizedBox(height: 24),
-              const Text(
-                'DATOS DEL MATERIAL',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.blue,
-                ),
-              ),
-              const Divider(),
-              const SizedBox(height: 16),
-
-              // Lote (solo lectura si está editando)
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Lote',
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                ),
-                initialValue: _formData.lote.toString(),
-                readOnly: true,
-              ),
-              const SizedBox(height: 16),
-
-              // Ciclo
-              _buildDropdownFormField(
-                label: 'Ciclo',
-                value: _formData.ciclo,
-                items: _cicloOptions,
-                onChanged: (value) {
-                  setState(() {
-                    _formData = _formData.copyWith(ciclo: value);
-                  });
-                },
-              ),
-
-              // Año Siembra
-              _buildTextFormField(
-                label: 'Año Siembra',
-                initialValue: _formData.anioSiembra?.toString(),
-                keyboardType: TextInputType.number,
-                onSaved: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    _formData = _formData.copyWith(
-                      anioSiembra: int.tryParse(value),
-                    );
-                  }
-                },
-              ),
-
-              // Ingreso/Compra
-              _buildDropdownFormField(
-                label: 'Ingreso/Compra',
-                value: _formData.ingresoCompra,
-                items: _ingresoCompraOptions,
-                onChanged: (value) {
-                  setState(() {
-                    _formData = _formData.copyWith(ingresoCompra: value);
-                  });
-                },
-                itemBuilder: (value) {
-                  return Text(value == 'S' ? 'Si' : 'No');
-                },
-              ),
-
-              // Tipo Material (requerido)
-              _buildDropdownFormField(
-                label: 'Tipo Material*',
-                value: _formData.tipoMaterial,
-                items: _tipoMaterialOptions,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Seleccione el tipo de material';
-                  }
-                  return null;
-                },
-                onChanged: (value) {
-                  setState(() {
-                    _formData = _formData.copyWith(tipoMaterial: value);
-                  });
-                },
-              ),
-
-              // Cantidad Material (requerido)
-              _buildTextFormField(
-                label: 'Cantidad Material*',
-                initialValue: _formData.cantidadMaterial?.toString(),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Ingrese la cantidad';
-                  }
-                  if (int.tryParse(value) == null) {
-                    return 'Ingrese un número válido';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    _formData = _formData.copyWith(
-                      cantidadMaterial: int.tryParse(value),
-                    );
-                  }
-                },
-              ),
-
-              // Unidad Medida (requerido)
-              _buildDropdownFormField(
-                label: 'Unidad Medida*',
-                value: _formData.unidadMedida,
-                items: _unidadMedidaOptions,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Seleccione la unidad';
-                  }
-                  return null;
-                },
-                onChanged: (value) {
-                  setState(() {
-                    _formData = _formData.copyWith(unidadMedida: value);
-                  });
-                },
-              ),
-
-              // Cantidad Remitida (requerido)
-              _buildTextFormField(
-                label: 'Cantidad Remitida (kg)*',
-                initialValue: _formData.cantidadRemitida?.toString(),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Ingrese la cantidad';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Ingrese un número válido';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    _formData = _formData.copyWith(
-                      cantidadRemitida: double.tryParse(value),
-                    );
-                  }
-                },
-              ),
-
-              // Gramaje
-              _buildTextFormField(
-                label: 'Gramaje (g)',
-                initialValue: _formData.gramaje?.toString(),
-                keyboardType: TextInputType.number,
-                onSaved: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    _formData = _formData.copyWith(
-                      gramaje: double.tryParse(value),
-                    );
-                  }
-                },
-              ),
-
-              // Proceso
-              _buildDropdownFormField(
-                label: 'Proceso',
-                value: _formData.proceso,
-                items: _procesoOptions,
-                onChanged: (value) {
-                  setState(() {
-                    _formData = _formData.copyWith(proceso: value);
-                  });
-                },
-              ),
-
+              _buildMaterialDataSection(),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: _saveForm,
-                  child: const Text(
-                    'GUARDAR MATERIAL',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
+              _buildSaveButton(),
             ],
           ),
         ),
@@ -346,7 +122,145 @@ class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildGuideInfoCard(DateFormat dateFormat) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'INFORMACIÓN DE LA GUÍA',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _FormInfoRow(label: 'Guía:', value: _formData.nroGuia),
+            _FormInfoRow(label: 'Programa:', value: _formData.nroPesca),
+            _FormInfoRow(
+              label: 'Camaronera:',
+              value: _formData.camaronera.trim(),
+            ),
+            _FormInfoRow(label: 'Piscina:', value: _formData.piscina.trim()),
+            _FormInfoRow(
+              label: 'Fecha:',
+              value: dateFormat.format(_formData.fechaGuia),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMaterialDataSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'DATOS DEL MATERIAL',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Colors.blue,
+          ),
+        ),
+        const Divider(),
+        const SizedBox(height: 16),
+        _formFields.buildLoteField(_formData.lote.toString()),
+        _formFields.buildCicloField(
+          value: _formData.ciclo,
+          onChanged: (value) => setState(() {
+            _formData = _formData.copyWith(ciclo: value);
+          }),
+        ),
+        _formFields.buildAnioSiembraField(
+          initialValue: _formData.anioSiembra?.toString(),
+          onSaved: (value) => _formData = _formData.copyWith(
+            anioSiembra: int.tryParse(value ?? ''),
+          ),
+        ),
+        _formFields.buildIngresoCompraField(
+          value: _formData.ingresoCompra,
+          onChanged: (value) => setState(() {
+            _formData = _formData.copyWith(ingresoCompra: value);
+          }),
+        ),
+        _formFields.buildTipoMaterialField(
+          value: _formData.tipoMaterial,
+          onChanged: (value) => setState(() {
+            _formData = _formData.copyWith(tipoMaterial: value);
+          }),
+        ),
+        _formFields.buildCantidadMaterialField(
+          initialValue: _formData.cantidadMaterial?.toString(),
+          onSaved: (value) => _formData = _formData.copyWith(
+            cantidadMaterial: int.tryParse(value ?? ''),
+          ),
+        ),
+        _formFields.buildUnidadMedidaField(
+          value: _formData.unidadMedida,
+          onChanged: (value) => setState(() {
+            _formData = _formData.copyWith(unidadMedida: value);
+          }),
+        ),
+        _formFields.buildCantidadRemitidaField(
+          initialValue: _formData.cantidadRemitida?.toString(),
+          onSaved: (value) => _formData = _formData.copyWith(
+            cantidadRemitida: double.tryParse(value ?? ''),
+          ),
+        ),
+        _formFields.buildGramajeField(
+          initialValue: _formData.gramaje?.toString(),
+          onSaved: (value) => _formData = _formData.copyWith(
+            gramaje: double.tryParse(value ?? ''),
+          ),
+        ),
+        _formFields.buildProcesoField(
+          value: _formData.proceso,
+          onChanged: (value) => setState(() {
+            _formData = _formData.copyWith(proceso: value);
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          backgroundColor: Colors.blue.shade700,
+        ),
+        onPressed: _formFields.isSaving ? null : _saveForm,
+        child: _formFields.isSaving
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text(
+                'GUARDAR MATERIAL',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
+      ),
+    );
+  }
+}
+
+class _FormInfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _FormInfoRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -360,64 +274,6 @@ class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
           ),
           Expanded(child: Text(value)),
         ],
-      ),
-    );
-  }
-
-  Widget _buildDropdownFormField({
-    required String label,
-    required String? value,
-    required List<String> items,
-    required Function(String?) onChanged,
-    String? Function(String?)? validator,
-    Widget Function(String)? itemBuilder,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: DropdownButtonFormField<String>(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
-        ),
-        value: value,
-        items: items.map((value) {
-          return DropdownMenuItem<String>(
-            value: value,
-            child: itemBuilder != null ? itemBuilder(value) : Text(value),
-          );
-        }).toList(),
-        onChanged: onChanged,
-        validator: validator,
-      ),
-    );
-  }
-
-  Widget _buildTextFormField({
-    required String label,
-    String? initialValue,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-    Function(String?)? onSaved,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: TextFormField(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
-        ),
-        initialValue: initialValue,
-        keyboardType: keyboardType,
-        validator: validator,
-        onSaved: onSaved,
       ),
     );
   }

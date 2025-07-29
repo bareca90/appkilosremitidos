@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class LocalDbService {
-  static const String _dbName = 'fishing_datosKgRem.db';
+  static const String _dbName = 'fishing_datosKgRemitidos.db';
   static const String _tableName = 'fishing_data';
   static const int _dbVersion = 4;
 
@@ -64,6 +64,7 @@ class LocalDbService {
             tieneRegistro INTEGER DEFAULT 0,
             sincronizado INTEGER DEFAULT 0,
             fechaSincronizacion TEXT,
+            tieneKilosRemitidos integer DEFAULT 0,
             PRIMARY KEY (nroGuia, lote)
           )
         ''');

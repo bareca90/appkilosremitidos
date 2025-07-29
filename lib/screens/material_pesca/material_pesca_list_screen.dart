@@ -36,7 +36,7 @@ class MaterialPescaListScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Material de Pesca'),
+        title: const Text('Registrar Kilos Remitidos'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -53,7 +53,7 @@ class MaterialPescaListScreen extends StatelessWidget {
               );
             },
           ),
-          IconButton(
+          /* IconButton(
             icon: const Icon(Icons.sync),
             onPressed: () async {
               final provider = Provider.of<MaterialPescaProvider>(
@@ -84,7 +84,7 @@ class MaterialPescaListScreen extends StatelessWidget {
                 );
               }
             },
-          ),
+          ), */
         ],
       ),
       body: Consumer<MaterialPescaProvider>(

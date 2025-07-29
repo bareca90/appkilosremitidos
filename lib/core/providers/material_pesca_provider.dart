@@ -1,3 +1,4 @@
+import 'package:appkilosremitidos/core/services/local_db_service.dart';
 import 'package:appkilosremitidos/models/material_pesca.dart';
 import 'package:appkilosremitidos/screens/material_pesca/repositories/material_pesca_repository.dart';
 import 'package:flutter/foundation.dart';
@@ -5,7 +6,8 @@ import 'package:flutter/foundation.dart';
 class MaterialPescaProvider with ChangeNotifier {
   final MaterialPescaRepository _repository;
 
-  MaterialPescaProvider(this._repository);
+  final LocalDbService _localDbService;
+  MaterialPescaProvider(this._repository, this._localDbService);
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -110,7 +112,58 @@ class MaterialPescaProvider with ChangeNotifier {
   } */
   Future<bool> saveMaterialPesca(MaterialPesca data) async {
     try {
-      // Guardar localmente primero
+      _isLoading = true;
+      notifyListeners();
+      // 1. Verificar si el lote ya existe
+      final existe = _dataList.any(
+        (d) => d.nroGuia == data.nroGuia && d.lote == data.lote,
+      );
+      // 2. Guardar en la base de datos local
+      if (existe) {
+        await _repository.updateMaterialPesca(data.copyWith(sincronizado: 0));
+      } else {
+        await _localDbService.insertMaterialPesca(
+          data.copyWith(sincronizado: 0),
+        );
+      }
+      // 3. Actualizar la lista en memoria
+      final index = _dataList.indexWhere(
+        (d) => d.nroGuia == data.nroGuia && d.lote == data.lote,
+      );
+      final newData = data.copyWith(sincronizado: 0, fechaSincronizacion: null);
+
+      if (index != -1) {
+        _dataList[index] = newData;
+      } else {
+        _dataList.add(newData);
+      }
+
+      // 4. Ordenar por guía y luego por lote
+      _dataList.sort((a, b) {
+        final guiaCompare = a.nroGuia.compareTo(b.nroGuia);
+        if (guiaCompare != 0) return guiaCompare;
+        return a.lote.compareTo(b.lote);
+      });
+
+      // 5. Actualizar lista filtrada
+      _filteredDataList = _filterText.isEmpty
+          ? List.from(_dataList)
+          : _dataList
+                .where(
+                  (d) =>
+                      d.nroGuia.toLowerCase().contains(
+                        _filterText.toLowerCase(),
+                      ) ||
+                      d.piscina.toLowerCase().contains(
+                        _filterText.toLowerCase(),
+                      ),
+                )
+                .toList();
+
+      _errorMessage = null;
+      return true;
+
+      /* // Guardar localmente primero
       await _repository.updateMaterialPesca(data.copyWith(sincronizado: 0));
 
       // Actualizar la lista en memoria
@@ -125,13 +178,16 @@ class MaterialPescaProvider with ChangeNotifier {
       }
 
       _dataList.sort((a, b) => (a.lote).compareTo(b.lote));
-      notifyListeners();
-
+      notifyListeners(); 
       return true;
-    } catch (e) {
-      _errorMessage = 'Error al guardar: ${e.toString()}';
-      notifyListeners();
+      */
+    } catch (e, stackTrace) {
+      _errorMessage = 'Error al guardar lote ${data.lote}: ${e.toString()}';
+      debugPrint('Error en saveMaterialPesca: $e\n$stackTrace');
       return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -155,9 +211,21 @@ class MaterialPescaProvider with ChangeNotifier {
   }
 
   int getNextLote(String nroGuia) {
-    final materiales = _dataList.where((m) => m.nroGuia == nroGuia).toList();
-    if (materiales.isEmpty) return 1;
-    return (materiales.last.lote) + 1;
+    try {
+      final materiales = _dataList.where((m) => m.nroGuia == nroGuia).toList();
+      if (materiales.isEmpty) return 1;
+
+      // Encontrar el máximo lote existente
+      final maxLote = materiales.fold(
+        0,
+        (prev, element) => element.lote > prev ? element.lote : prev,
+      );
+
+      return maxLote + 1;
+    } catch (e) {
+      print('Error en getNextLote: $e');
+      return 1; // Valor por defecto si hay error
+    }
   }
 
   List<MaterialPesca> get materialesList => _filteredDataList;

@@ -12,11 +12,13 @@ class MaterialPescaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dateFormat = DateFormat('dd/MM/yyyy');
+    final isCompleted = data.tieneKilosRemitidos == 1 || data.sincronizado == 1;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: const Color.fromARGB(255, 255, 254, 254),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
@@ -26,7 +28,7 @@ class MaterialPescaCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header con información clave
-              _buildHeader(theme),
+              _buildHeader(theme, isCompleted),
 
               const SizedBox(height: 12),
 
@@ -43,7 +45,7 @@ class MaterialPescaCard extends StatelessWidget {
               // Indicador de estado
               Align(
                 alignment: Alignment.centerRight,
-                child: _buildStatusIndicator(),
+                child: _buildStatusIndicator(isCompleted),
               ),
             ],
           ),
@@ -52,7 +54,7 @@ class MaterialPescaCard extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(ThemeData theme) {
+  Widget _buildHeader(ThemeData theme, bool isCompleted) {
     return Row(
       children: [
         Expanded(
@@ -63,6 +65,7 @@ class MaterialPescaCard extends StatelessWidget {
                 'Programa: ${data.nroPesca}',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: isCompleted ? Colors.green[800] : null,
                 ),
               ),
               const SizedBox(height: 4),
@@ -70,7 +73,7 @@ class MaterialPescaCard extends StatelessWidget {
                 'Guía: ${data.nroGuia}',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: theme.primaryColor,
+                  color: isCompleted ? Colors.green[800] : theme.primaryColor,
                 ),
               ),
             ],
@@ -78,8 +81,11 @@ class MaterialPescaCard extends StatelessWidget {
         ),
         Chip(
           label: Text(data.tipoPesca),
-          backgroundColor: theme.primaryColor.withOpacity(0.1),
+          backgroundColor: isCompleted
+              ? Colors.green[100]
+              : theme.primaryColor.withOpacity(0.1),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          labelStyle: TextStyle(color: isCompleted ? Colors.green[800] : null),
         ),
       ],
     );
@@ -197,33 +203,63 @@ class MaterialPescaCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusIndicator() {
-    final isComplete = data.tieneRegistro == 1;
+  Widget _buildStatusIndicator(bool isCompleted) {
+    final isSynced = data.sincronizado == 1;
+    final hasKilos = data.tieneKilosRemitidos == 1;
+
+    if (isCompleted) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.green[100],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle, size: 16, color: Colors.green),
+            const SizedBox(width: 6),
+            const Text(
+              'COMPLETO',
+              style: TextStyle(
+                color: Colors.green,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.cloud_done, size: 16, color: Colors.blue.shade700),
+          ],
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isComplete ? Colors.green[50] : Colors.orange[50],
+        color: Colors.orange[50],
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isComplete ? Icons.check_circle : Icons.pending,
-            size: 16,
-            color: isComplete ? Colors.green : Colors.orange,
-          ),
+          Icon(Icons.pending, size: 16, color: Colors.orange),
           const SizedBox(width: 6),
           Text(
-            isComplete ? 'COMPLETO' : 'PENDIENTE',
+            'PENDIENTE',
             style: TextStyle(
-              color: isComplete ? Colors.green : Colors.orange,
+              color: Colors.orange,
               fontSize: 12,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5,
             ),
           ),
+          if (hasKilos && !isSynced)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Icon(Icons.cloud_off, size: 16, color: Colors.orange),
+            ),
         ],
       ),
     );

@@ -42,6 +42,8 @@ void main() async {
               apiService: ApiService(),
               localDbService: LocalDbService(),
             ),
+
+            LocalDbService(),
           ),
         ),
       ],

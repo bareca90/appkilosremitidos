@@ -19,6 +19,7 @@ class MaterialPesca {
   final int tieneRegistro;
   final int sincronizado; // 0 = no sincronizado, 1 = sincronizado
   final DateTime? fechaSincronizacion;
+  final int tieneKilosRemitidos;
 
   MaterialPesca({
     required this.tipoPesca,
@@ -41,6 +42,7 @@ class MaterialPesca {
     this.tieneRegistro = 0,
     this.sincronizado = 0,
     this.fechaSincronizacion,
+    this.tieneKilosRemitidos = 0,
   });
 
   factory MaterialPesca.fromJson(Map<String, dynamic> json) {
@@ -77,6 +79,7 @@ class MaterialPesca {
       fechaSincronizacion: json['fechaSincronizacion'] != null
           ? DateTime.parse(json['fechaSincronizacion'])
           : null,
+      tieneKilosRemitidos: json['tieneKilosRemitidos'] ?? 0,
     );
   }
   static int _generarNuevoLote() {
@@ -106,6 +109,7 @@ class MaterialPesca {
       'tieneRegistro': tieneRegistro,
       'sincronizado': sincronizado,
       'fechaSincronizacion': fechaSincronizacion?.toIso8601String(),
+      'tieneKilosRemitidos': tieneKilosRemitidos,
     };
   }
 
@@ -130,6 +134,7 @@ class MaterialPesca {
     int? tieneRegistro,
     int? sincronizado,
     DateTime? fechaSincronizacion,
+    int? tieneKilosRemitidos,
   }) {
     return MaterialPesca(
       tipoPesca: tipoPesca ?? this.tipoPesca,
@@ -152,6 +157,7 @@ class MaterialPesca {
       tieneRegistro: tieneRegistro ?? this.tieneRegistro,
       sincronizado: sincronizado ?? this.sincronizado,
       fechaSincronizacion: fechaSincronizacion ?? this.fechaSincronizacion,
+      tieneKilosRemitidos: tieneKilosRemitidos ?? this.tieneKilosRemitidos,
     );
   }
 }
