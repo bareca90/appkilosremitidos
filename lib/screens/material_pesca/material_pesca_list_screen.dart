@@ -1,7 +1,8 @@
 /* import 'package:appkilosremitidos/core/constants/app_routes.dart'; */
-import 'package:appkilosremitidos/models/material_pesca.dart';
+/* import 'package:appkilosremitidos/models/material_pesca.dart'; */
 import 'package:appkilosremitidos/screens/material_pesca/material_pesca_detail_screen.dart';
 import 'package:appkilosremitidos/screens/material_pesca/widgets/material_pesca_card.dart';
+import 'package:appkilosremitidos/screens/material_pesca/widgets/material_pesca_search_delegate.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:appkilosremitidos/core/providers/auth_provider.dart';
@@ -20,6 +21,42 @@ class MaterialPescaListScreen extends StatelessWidget {
 
   Future<void> _refreshData(BuildContext context) async {
     await _loadData(context);
+  }
+
+  Future<void> _navigateToDetail(BuildContext context, String nroGuia) async {
+    try {
+      final provider = Provider.of<MaterialPescaProvider>(
+        context,
+        listen: false,
+      );
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      // Obtener el material seleccionado
+      final selected = await provider.selectData(nroGuia);
+
+      if (selected == null) {
+        throw Exception('No se encontró la guía $nroGuia');
+      }
+
+      if (context.mounted) {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MaterialPescaDetailScreen(material: selected),
+          ),
+        );
+
+        if (result == true && context.mounted) {
+          await provider.fetchData(authProvider.token!);
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    }
   }
 
   @override
@@ -47,44 +84,14 @@ class MaterialPescaListScreen extends StatelessWidget {
               );
               showSearch(
                 context: context,
-                delegate: _MaterialPescaSearchDelegate(
+                delegate: MaterialPescaSearchDelegate(
                   dataList: provider.dataList,
+                  onGuiaSelected: (nroGuia) =>
+                      _navigateToDetail(context, nroGuia),
                 ),
               );
             },
           ),
-          /* IconButton(
-            icon: const Icon(Icons.sync),
-            onPressed: () async {
-              final provider = Provider.of<MaterialPescaProvider>(
-                context,
-                listen: false,
-              );
-              final authProvider = Provider.of<AuthProvider>(
-                context,
-                listen: false,
-              );
-
-              try {
-                await provider.sincronizarMateriales(authProvider.token!);
-                // ignore: use_build_context_synchronously
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Sincronización completada'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } catch (e) {
-                // ignore: use_build_context_synchronously
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error al sincronizar: ${e.toString()}'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-          ), */
         ],
       ),
       body: Consumer<MaterialPescaProvider>(
@@ -118,6 +125,8 @@ class MaterialPescaListScreen extends StatelessWidget {
                 final data = provider.filteredDataList[index];
                 return MaterialPescaCard(
                   data: data,
+                  onTap: () => _navigateToDetail(context, data.nroGuia),
+                  /* data: data,
                   onTap: () async {
                     try {
                       final provider = Provider.of<MaterialPescaProvider>(
@@ -161,7 +170,7 @@ class MaterialPescaListScreen extends StatelessWidget {
                         );
                       }
                     }
-                  },
+                  }, */
                 );
               },
             ),
@@ -172,7 +181,7 @@ class MaterialPescaListScreen extends StatelessWidget {
   }
 }
 
-class _MaterialPescaSearchDelegate extends SearchDelegate<String> {
+/* class _MaterialPescaSearchDelegate extends SearchDelegate<String> {
   final List<MaterialPesca> dataList;
 
   _MaterialPescaSearchDelegate({required this.dataList});
@@ -250,4 +259,4 @@ class _MaterialPescaSearchDelegate extends SearchDelegate<String> {
       },
     );
   }
-}
+} */

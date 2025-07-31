@@ -110,15 +110,15 @@ class _HoursFormScreenState extends State<HoursFormScreen> {
               ),
               _buildDateTimeSection(
                 context,
-                'SALIDA CAMARONERA',
-                'fechaCamaroneraPlanta',
-                widget.data.tieneSalidaCamaronera == 1,
-              ),
-              _buildDateTimeSection(
-                context,
                 'LLEGADA CAMARONERA',
                 'fechaLlegadaCamaronera',
                 widget.data.tieneLlegadaCamaronera == 1,
+              ),
+              _buildDateTimeSection(
+                context,
+                'SALIDA CAMARONERA',
+                'fechaCamaroneraPlanta',
+                widget.data.tieneSalidaCamaronera == 1,
               ),
               const SizedBox(height: 32),
               _buildSaveButton(theme),
