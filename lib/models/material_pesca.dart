@@ -84,7 +84,7 @@ class MaterialPesca {
   }
   static int _generarNuevoLote() {
     // Lógica para generar nuevo lote (puedes usar timestamp u otro método)
-    return 0;
+    return 1;
   }
 
   Map<String, dynamic> toMap() {

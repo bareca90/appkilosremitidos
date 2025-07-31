@@ -158,22 +158,27 @@ class MaterialPescaCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        if (data.tipoMaterial != null || data.cantidadMaterial != null)
+        if (data.lote > 0 &&
+            data.tipoMaterial != null &&
+            data.cantidadMaterial != null &&
+            data.cantidadMaterial! > 0 &&
+            data.unidadMedida != null &&
+            data.unidadMedida != '')
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              if (data.tipoMaterial != null)
+              if (data.tipoMaterial != null && data.tipoMaterial != '')
                 _buildMaterialDetail('Tipo:', data.tipoMaterial!),
-              if (data.cantidadMaterial != null)
+              if (data.cantidadMaterial != null && data.cantidadMaterial! > 0)
                 _buildMaterialDetail('Cantidad:', '${data.cantidadMaterial}'),
-              if (data.unidadMedida != null)
+              if (data.unidadMedida != null && data.unidadMedida != '')
                 _buildMaterialDetail('Unidad:', data.unidadMedida!),
-              if (data.cantidadRemitida != null)
+              if (data.cantidadRemitida != null && data.cantidadRemitida! > 0)
                 _buildMaterialDetail('Remitido:', '${data.cantidadRemitida}'),
-              if (data.gramaje != null)
+              if (data.gramaje != null && data.gramaje! > 0)
                 _buildMaterialDetail('Gramaje:', '${data.gramaje} g'),
-              if (data.proceso != null)
+              if (data.proceso != null && data.proceso != '')
                 _buildMaterialDetail('Proceso:', data.proceso!),
             ],
           )

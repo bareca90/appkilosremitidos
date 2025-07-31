@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class LocalDbService {
-  static const String _dbName = 'fishing_datosKgRemitidos.db';
+  static const String _dbName = 'db_kilosRemitidos.db';
   static const String _tableName = 'fishing_data';
   static const int _dbVersion = 4;
 
@@ -124,7 +124,7 @@ class LocalDbService {
     );
   }
 
-  Future<List<MaterialPesca>> getAllMaterialPesca() async {
+  /* Future<List<MaterialPesca>> getAllMaterialPesca() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'material_pesca',
@@ -132,6 +132,63 @@ class LocalDbService {
       whereArgs: [0],
     );
     return maps.map((map) => MaterialPesca.fromJson(map)).toList();
+  } */
+  Future<void> corregirLotesCero() async {
+    final db = await database;
+
+    // Obtener todas las guías únicas con lotes cero
+    final List<Map<String, dynamic>> guiasConLoteCero = await db.rawQuery('''
+      SELECT DISTINCT nroGuia 
+      FROM material_pesca 
+      WHERE lote = 0
+    ''');
+
+    // Para cada guía con lotes cero
+    for (final guia in guiasConLoteCero) {
+      final nroGuia = guia['nroGuia'] as String;
+
+      // Obtener el máximo lote para esta guía
+      final maxLoteMap = await db.rawQuery(
+        '''
+        SELECT MAX(lote) as maxLote 
+        FROM material_pesca 
+        WHERE nroGuia = ? AND lote > 0
+      ''',
+        [nroGuia],
+      );
+
+      final maxLote = maxLoteMap.first['maxLote'] as int? ?? 0;
+      final nuevoLote = maxLote + 1;
+
+      // Actualizar todos los lotes cero de esta guía
+      await db.update(
+        'material_pesca',
+        {'lote': nuevoLote},
+        where: 'nroGuia = ? AND lote = 0',
+        whereArgs: [nroGuia],
+      );
+    }
+  }
+
+  Future<List<MaterialPesca>> getAllMaterialPesca() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'material_pesca',
+      where: 'sincronizado = ?',
+      whereArgs: [0],
+      orderBy: 'nroGuia, lote', // Ordenamos por guía y luego por lote
+    );
+
+    // Filtramos para mantener solo el primer registro de cada guía
+    final Map<String, MaterialPesca> uniqueGuides = {};
+    for (final map in maps) {
+      final material = MaterialPesca.fromJson(map);
+      if (!uniqueGuides.containsKey(material.nroGuia)) {
+        uniqueGuides[material.nroGuia] = material;
+      }
+    }
+
+    return uniqueGuides.values.toList();
   }
 
   Future<MaterialPesca?> getMaterialPescaByGuide(String nroGuia) async {
@@ -238,14 +295,43 @@ class LocalDbService {
     await db.delete(_tableName, where: 'nroGuia = ?', whereArgs: [nroGuia]);
   }
 
+  Future<void> deleteMaterialPescaByGuide(String nroGuia) async {
+    final db = await database;
+    await db.delete(
+      'material_pesca',
+      where: 'nroGuia = ?',
+      whereArgs: [nroGuia],
+    );
+  }
+
+  Future<void> upsertMaterialPesca(MaterialPesca data) async {
+    final db = await database;
+    await db.insert(
+      'material_pesca',
+      data.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
   Future<List<MaterialPesca>> getMaterialesByGuia(String nroGuia) async {
     final db = await database;
+
+    // Primero obtener todos los materiales sin filtrar por lote
     final List<Map<String, dynamic>> maps = await db.query(
       'material_pesca',
       where: 'nroGuia = ?',
       whereArgs: [nroGuia],
       orderBy: 'lote ASC',
     );
-    return maps.map((map) => MaterialPesca.fromJson(map)).toList();
+
+    // Convertir a objetos MaterialPesca
+    final materiales = maps.map((map) => MaterialPesca.fromJson(map)).toList();
+
+    // Filtrar y corregir lotes cero solo para visualización
+    return materiales.map((material) {
+      return material.lote == 0
+          ? material.copyWith(lote: 1) // Corregir solo para visualización
+          : material;
+    }).toList();
   }
 }

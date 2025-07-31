@@ -14,29 +14,67 @@ class MaterialPescaRepository {
 
   Future<List<MaterialPesca>> fetchMaterialPesca(String token) async {
     try {
+      // 1. Obtener datos del API
       final response = await _apiService.getWaybillData(token, 'GSK');
-
       final dynamic responseData = response['data'];
-      List<MaterialPesca> dataList = [];
+
+      List<MaterialPesca> apiDataList = [];
 
       if (responseData is List) {
-        dataList = responseData
+        apiDataList = responseData
             .map((item) => MaterialPesca.fromJson(item))
             .toList();
       } else if (responseData is Map) {
-        dataList = [
+        apiDataList = [
           MaterialPesca.fromJson(Map<String, dynamic>.from(responseData)),
         ];
       } else {
         throw Exception('Formato de datos no reconocido');
       }
 
-      await _localDbService.clearMaterialPesca();
+      // 2. Obtener datos locales actuales
+      final localData = await _localDbService.getAllMaterialPesca();
 
-      for (final data in dataList) {
-        await _localDbService.insertMaterialPesca(data);
+      // 3. Procesar la sincronización
+      for (final apiData in apiDataList) {
+        // Buscar si ya existe localmente
+        final localItem = localData.firstWhere(
+          (local) => local.nroGuia == apiData.nroGuia,
+          orElse: () => MaterialPesca(
+            tipoPesca: '',
+            nroPesca: '',
+            nroGuia: '',
+            fechaGuia: DateTime.now(),
+            camaronera: '',
+            codPiscina: '',
+            piscina: '',
+            lote: 0,
+          ),
+        );
+
+        // Caso 1: Guía con tieneKilosRemitidos = 1 (actualizar siempre)
+        if (apiData.tieneKilosRemitidos == 1) {
+          await _localDbService.insertMaterialPesca(apiData);
+        }
+        // Caso 2: Guía con tieneKilosRemitidos = 0
+        else {
+          // Si existe localmente y tiene cantidadRemitida > 0 y lote > 0, no hacer nada
+          if (localItem.nroGuia.isNotEmpty &&
+              (localItem.cantidadRemitida ?? 0) > 0 &&
+              localItem.lote > 0) {
+            continue;
+          }
+          // Si no cumple las condiciones, eliminar y crear nueva
+          else {
+            // Eliminar todas las versiones locales de esta guía
+            await _localDbService.deleteMaterialPescaByGuide(apiData.nroGuia);
+            // Insertar la versión del API
+            await _localDbService.insertMaterialPesca(apiData);
+          }
+        }
       }
 
+      // 4. Retornar los datos actualizados
       return await _localDbService.getAllMaterialPesca();
     } catch (e) {
       print('Error fetching remote data: $e');
@@ -97,7 +135,7 @@ class MaterialPescaRepository {
       final success = await _apiService.insertKgsent(
         token: token,
         nroGuia: material.nroGuia,
-        ciclo: material.ciclo ?? 'A', // Valor por defecto si es null
+        ciclo: material.ciclo ?? 'A',
         anioSiembra: material.anioSiembra ?? DateTime.now().year,
         lote: material.lote,
         ingresoCompra: material.ingresoCompra ?? 'N',

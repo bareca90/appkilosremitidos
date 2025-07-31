@@ -56,8 +56,10 @@ class MaterialPescaProvider with ChangeNotifier {
     } catch (e) {
       _errorMessage = e.toString();
       try {
+        // Intentar cargar solo datos locales como respaldo
         _dataList = await _repository.getLocalMaterialPesca();
         _filteredDataList = _dataList;
+        _errorMessage = "Advertencia: Datos no actualizados. ${e.toString()}";
       } catch (localError) {
         _errorMessage = "Error al cargar datos: ${e.toString()}";
         _dataList = [];
@@ -114,6 +116,10 @@ class MaterialPescaProvider with ChangeNotifier {
     try {
       _isLoading = true;
       notifyListeners();
+      // Validar que el lote no sea cero
+      if (data.lote <= 0) {
+        throw Exception('El número de lote debe ser mayor que cero');
+      }
       // 1. Verificar si el lote ya existe
       final existe = _dataList.any(
         (d) => d.nroGuia == data.nroGuia && d.lote == data.lote,
@@ -191,14 +197,57 @@ class MaterialPescaProvider with ChangeNotifier {
     }
   }
 
-  Future<void> loadMaterialesPorGuia(String nroGuia) async {
+  Future<bool> sincronizarMaterialPescaIndividual(
+    String token,
+    MaterialPesca data,
+  ) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      print('Cargando materiales para guía: $nroGuia');
-      _dataList = await _repository.getMaterialesByGuia(nroGuia);
-      _filteredDataList = _dataList;
+      // 1. Intentar sincronizar con el API
+      final success = await _repository.sincronizarMaterial(data, token);
+
+      if (success) {
+        // 2. Actualizar el estado local si la sincronización fue exitosa
+        final updatedData = data.copyWith(
+          sincronizado: 1,
+          fechaSincronizacion: DateTime.now(),
+          tieneKilosRemitidos: 1,
+          tieneRegistro: 1,
+        );
+
+        // 3. Actualizar en la base de datos local
+        await _repository.updateMaterialPesca(updatedData);
+
+        // 4. Actualizar en la lista en memoria
+        final index = _dataList.indexWhere(
+          (d) => d.nroGuia == data.nroGuia && d.lote == data.lote,
+        );
+        if (index != -1) {
+          _dataList[index] = updatedData;
+        }
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = 'Error al sincronizar: ${e.toString()}';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadMaterialesPorGuia(String nroGuia) async {
+    try {
+      _isLoading = true;
+      // Cargar datos sin notificar aún
+      final nuevosDatos = await _repository.getMaterialesByGuia(nroGuia);
+      // Actualizar listas
+      _dataList = nuevosDatos;
+      _filteredDataList = nuevosDatos;
       _errorMessage = null;
     } catch (e) {
       _errorMessage = 'Error al cargar materiales: ${e.toString()}';
@@ -206,6 +255,7 @@ class MaterialPescaProvider with ChangeNotifier {
       _filteredDataList = [];
     } finally {
       _isLoading = false;
+      // Notificar solo cuando todo esté listo
       notifyListeners();
     }
   }
@@ -213,18 +263,22 @@ class MaterialPescaProvider with ChangeNotifier {
   int getNextLote(String nroGuia) {
     try {
       final materiales = _dataList.where((m) => m.nroGuia == nroGuia).toList();
-      if (materiales.isEmpty) return 1;
+
+      // Filtrar lotes válidos (mayores que 0)
+      final lotesValidos = materiales.where((m) => m.lote > 0).toList();
+
+      if (lotesValidos.isEmpty) return 1; // Primer lote válido
 
       // Encontrar el máximo lote existente
-      final maxLote = materiales.fold(
+      final maxLote = lotesValidos.fold(
         0,
         (prev, element) => element.lote > prev ? element.lote : prev,
       );
 
       return maxLote + 1;
     } catch (e) {
-      print('Error en getNextLote: $e');
-      return 1; // Valor por defecto si hay error
+      debugPrint('Error en getNextLote: $e');
+      return 1; // Valor por defecto seguro
     }
   }
 

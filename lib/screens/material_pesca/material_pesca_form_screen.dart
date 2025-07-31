@@ -39,36 +39,53 @@ class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
     try {
       setState(() => _formFields.isSaving = true);
 
+      // Primero guardamos localmente con estado no sincronizado
       _formData = _formData.copyWith(
         tieneRegistro: 1,
-        sincronizado: 0,
-        fechaSincronizacion: null,
+        tieneKilosRemitidos: 1,
+        sincronizado: 0, // Inicialmente no sincronizado
+        fechaSincronizacion: null, // Sin fecha de sincronización
       );
 
-      final success = await provider.saveMaterialPesca(_formData);
+      // Guardar localmente
+      final localSuccess = await provider.saveMaterialPesca(_formData);
+
+      if (!localSuccess) {
+        throw Exception('Error al guardar localmente');
+      }
+
+      // Intentar sincronizar con el API
+      bool syncSuccess = false;
+      try {
+        syncSuccess = await _synchronizeWithApi(authProvider.token!, _formData);
+      } catch (e) {
+        print('Error en sincronización: $e');
+        syncSuccess = false;
+      }
+
+      // Actualizar el estado según el resultado de la sincronización
+      _formData = _formData.copyWith(
+        sincronizado: syncSuccess ? 1 : 0,
+        fechaSincronizacion: syncSuccess ? DateTime.now() : null,
+      );
+
+      // Guardar el estado actualizado
+      await provider.saveMaterialPesca(_formData);
 
       if (!mounted) return;
 
-      if (success) {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text('Material guardado correctamente'),
-            backgroundColor: Colors.green,
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            syncSuccess
+                ? 'Material guardado y sincronizado correctamente'
+                : 'Material guardado localmente (sin sincronización)',
           ),
-        );
+          backgroundColor: syncSuccess ? Colors.green : Colors.orange,
+        ),
+      );
 
-        // Sincronización en segundo plano
-        await provider.sincronizarMateriales(authProvider.token!);
-
-        if (mounted) Navigator.pop(context, true);
-      } else {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text('Error al guardar el material'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       scaffoldMessenger.showSnackBar(
         SnackBar(
@@ -78,6 +95,19 @@ class _MaterialPescaFormScreenState extends State<MaterialPescaFormScreen> {
       );
     } finally {
       if (mounted) setState(() => _formFields.isSaving = false);
+    }
+  }
+
+  Future<bool> _synchronizeWithApi(String token, MaterialPesca data) async {
+    try {
+      final provider = Provider.of<MaterialPescaProvider>(
+        context,
+        listen: false,
+      );
+      return await provider.sincronizarMaterialPescaIndividual(token, data);
+    } catch (e) {
+      print('Error en sincronización individual: $e');
+      return false;
     }
   }
 

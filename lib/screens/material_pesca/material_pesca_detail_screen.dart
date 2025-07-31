@@ -38,27 +38,57 @@ class MaterialPescaDetailScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: AppColors.white),
-            onPressed: () async {
-              final provider = Provider.of<MaterialPescaProvider>(
-                context,
-                listen: false,
-              );
-              await provider.loadMaterialesPorGuia(material.nroGuia);
-            },
+            onPressed: () => _refreshData(context),
             tooltip: 'Actualizar',
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _HeaderInfo(material: material),
-          const SizedBox(height: 8),
-          Expanded(child: _MaterialList(nroGuia: material.nroGuia)),
-        ],
-      ),
+      body: _buildBody(context),
       floatingActionButton: _buildAddButton(context),
     );
   }
+
+  Widget _buildBody(BuildContext context) {
+    final provider = Provider.of<MaterialPescaProvider>(context, listen: false);
+
+    // Usamos FutureBuilder para cargar los datos iniciales
+    return FutureBuilder<void>(
+      future: provider.loadMaterialesPorGuia(material.nroGuia),
+      builder: (context, snapshot) {
+        // Luego usamos Consumer para escuchar cambios
+        return Consumer<MaterialPescaProvider>(
+          builder: (context, provider, _) {
+            final materiales =
+                provider.materialesList
+                    .where((m) => m.nroGuia == material.nroGuia)
+                    .toList()
+                  ..sort((a, b) => a.lote.compareTo(b.lote));
+
+            return Column(
+              children: [
+                _HeaderInfo(material: material),
+                const SizedBox(height: 8),
+                Expanded(child: _MaterialList(materiales: materiales)),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _refreshData(BuildContext context) async {
+    final provider = Provider.of<MaterialPescaProvider>(context, listen: false);
+    await provider.loadMaterialesPorGuia(material.nroGuia);
+  }
+  /* Future<List<MaterialPesca>> _loadMateriales(BuildContext context) async {
+    final provider = Provider.of<MaterialPescaProvider>(context, listen: false);
+    await provider.loadMaterialesPorGuia(material.nroGuia);
+    return provider.materialesList
+        .where((m) => m.nroGuia == material.nroGuia)
+        .toList()
+      ..sort((a, b) => a.lote.compareTo(b.lote));
+  } */
 
   Widget _buildAddButton(BuildContext context) {
     final isBlocked = material.tieneKilosRemitidos == 1;
@@ -307,43 +337,83 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _MaterialList extends StatelessWidget {
-  final String nroGuia;
+  final List<MaterialPesca> materiales;
 
-  const _MaterialList({required this.nroGuia});
+  const _MaterialList({required this.materiales});
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<MaterialPescaProvider>(context);
-    final materiales =
-        provider.materialesList.where((m) => m.nroGuia == nroGuia).toList()
-          ..sort((a, b) => a.lote.compareTo(b.lote));
-
     if (materiales.isEmpty) {
       return _EmptyState();
     }
 
     return RefreshIndicator(
       color: AppColors.primaryBlue,
-      onRefresh: () => provider.loadMaterialesPorGuia(nroGuia),
+      onRefresh: () async {
+        final provider = Provider.of<MaterialPescaProvider>(
+          context,
+          listen: false,
+        );
+        await provider.loadMaterialesPorGuia(materiales.first.nroGuia);
+      },
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         itemCount: materiales.length,
-        itemBuilder: (context, index) =>
-            _MaterialCard(material: materiales[index]),
+        itemBuilder: (context, index) {
+          final material = materiales[index];
+          return _MaterialCard(
+            material: material,
+            onEdit: () => _editMaterial(context, material),
+          );
+        },
       ),
     );
+  }
+
+  Future<void> _editMaterial(
+    BuildContext context,
+    MaterialPesca material,
+  ) async {
+    final provider = Provider.of<MaterialPescaProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    try {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MaterialPescaFormScreen(data: material),
+        ),
+      );
+
+      if (result == true && context.mounted) {
+        await provider.loadMaterialesPorGuia(material.nroGuia);
+        await provider.fetchData(authProvider.token!);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppColors.primaryRed,
+          ),
+        );
+      }
+    }
   }
 }
 
 class _MaterialCard extends StatelessWidget {
   final MaterialPesca material;
+  final VoidCallback? onEdit;
 
-  const _MaterialCard({required this.material});
+  const _MaterialCard({required this.material, this.onEdit});
 
   @override
   Widget build(BuildContext context) {
     final isComplete = material.tieneRegistro == 1;
     final isSynced = material.sincronizado == 1;
+    final isLoteCero = material.lote == 0;
+    final hasKilosRemitidos = material.tieneKilosRemitidos == 1;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -351,12 +421,14 @@ class _MaterialCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () {},
+        onTap: hasKilosRemitidos ? null : onEdit,
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isComplete
+              color: isLoteCero
+                  ? Colors.orange.withOpacity(0.5)
+                  : isComplete
                   ? isSynced
                         ? AppColors.primaryBlue.withOpacity(0.3)
                         : AppColors.primaryRed.withOpacity(0.3)
@@ -377,80 +449,109 @@ class _MaterialCard extends StatelessWidget {
                         Icon(
                           Icons.inventory_2,
                           size: 20,
-                          color: AppColors.primaryBlue,
+                          color: isLoteCero
+                              ? Colors.orange
+                              : AppColors.primaryBlue,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Lote ${material.lote}',
-                          style: const TextStyle(
+                          'Lote ${material.lote == 0 ? "Pendiente" : material.lote}',
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
-                            color: AppColors.primaryBlue,
+                            color: isLoteCero
+                                ? Colors.orange
+                                : AppColors.primaryBlue,
                           ),
                         ),
                       ],
                     ),
-                    Row(
-                      children: [
-                        if (isComplete)
-                          Icon(
-                            Icons.check_circle,
-                            color: AppColors.primaryBlue,
-                            size: 22,
-                          ),
-                        if (isSynced)
-                          Icon(
-                            Icons.cloud_done,
-                            color: AppColors.primaryBlue,
-                            size: 22,
-                          ),
-                        if (!isSynced && isComplete)
-                          Icon(
-                            Icons.cloud_off,
-                            color: AppColors.primaryRed,
-                            size: 22,
-                          ),
-                      ],
-                    ),
+                    if (isLoteCero)
+                      const Icon(Icons.warning, color: Colors.orange)
+                    else
+                      Row(
+                        children: [
+                          if (isComplete)
+                            Icon(
+                              Icons.check_circle,
+                              color: AppColors.primaryBlue,
+                              size: 22,
+                            ),
+                          if (isSynced)
+                            Icon(
+                              Icons.cloud_done,
+                              color: AppColors.primaryBlue,
+                              size: 22,
+                            ),
+                          if (!isSynced && isComplete)
+                            Icon(
+                              Icons.cloud_off,
+                              color: AppColors.primaryRed,
+                              size: 22,
+                            ),
+                          if (!hasKilosRemitidos && onEdit != null)
+                            IconButton(
+                              icon: Icon(Icons.edit, size: 22),
+                              color: AppColors.primaryBlue,
+                              onPressed: onEdit,
+                            ),
+                        ],
+                      ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                if (material.tipoMaterial != null)
-                  _DetailRow(
-                    icon: Icons.category,
-                    label: 'Material:',
-                    value: material.tipoMaterial!,
+                if (!isLoteCero) ...[
+                  const SizedBox(height: 8),
+                  if (material.tipoMaterial != null)
+                    _DetailRow(
+                      icon: Icons.category,
+                      label: 'Material:',
+                      value: material.tipoMaterial!,
+                    ),
+                  if (material.cantidadMaterial != null)
+                    _DetailRow(
+                      icon: Icons.format_list_numbered,
+                      label: 'Cantidad:',
+                      value: '${material.cantidadMaterial}',
+                    ),
+                  if (material.unidadMedida != null)
+                    _DetailRow(
+                      icon: Icons.straighten,
+                      label: 'Unidad:',
+                      value: material.unidadMedida!,
+                    ),
+                  if (material.cantidadRemitida != null)
+                    _DetailRow(
+                      icon: Icons.scale,
+                      label: 'Remitido:',
+                      value: '${material.cantidadRemitida} kg',
+                    ),
+                  if (material.gramaje != null)
+                    _DetailRow(
+                      icon: Icons.monitor_weight,
+                      label: 'Gramaje:',
+                      value: '${material.gramaje} g',
+                    ),
+                  if (material.proceso != null)
+                    _DetailRow(
+                      icon: Icons.engineering,
+                      label: 'Proceso:',
+                      value: material.proceso!,
+                    ),
+                ] else ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Este lote necesita ser completado',
+                    style: TextStyle(color: Colors.orange),
                   ),
-                if (material.cantidadMaterial != null)
-                  _DetailRow(
-                    icon: Icons.format_list_numbered,
-                    label: 'Cantidad:',
-                    value: '${material.cantidadMaterial}',
-                  ),
-                if (material.unidadMedida != null)
-                  _DetailRow(
-                    icon: Icons.straighten,
-                    label: 'Unidad:',
-                    value: material.unidadMedida!,
-                  ),
-                if (material.cantidadRemitida != null)
-                  _DetailRow(
-                    icon: Icons.scale,
-                    label: 'Remitido:',
-                    value: '${material.cantidadRemitida} kg',
-                  ),
-                if (material.gramaje != null)
-                  _DetailRow(
-                    icon: Icons.monitor_weight,
-                    label: 'Gramaje:',
-                    value: '${material.gramaje} g',
-                  ),
-                if (material.proceso != null)
-                  _DetailRow(
-                    icon: Icons.engineering,
-                    label: 'Proceso:',
-                    value: material.proceso!,
-                  ),
+                  if (onEdit != null)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: onEdit,
+                        child: const Text('COMPLETAR AHORA'),
+                      ),
+                    ),
+                ],
               ],
             ),
           ),
